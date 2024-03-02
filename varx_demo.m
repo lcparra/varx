@@ -162,10 +162,11 @@ B = [[1 0.5 0 -0.5]',[0 0 0 0]']; % basis coefficients
 [nb,ydim,xdim] = size(B);
 [na,ydim,ydim] = size(A);
 base = basis(30,nb,'normal');
+gamma = 1;
 
-x = randn(200,xdim);
+x = randn(100,xdim);
 y = varx_simulate(tensorprod(base,B,2,1),A,x,1);
-[Aest,Best,A_pval,B_pval] = varx(y,na,x,base)
+[Aest,Best,A_pval,B_pval] = varx(y,na,x,base,gamma)
 
 yest = varx_simulate(tensorprod(base,Best,2,1),A,x,y);
 % x(30,1) = NaN; % test if adding NaN works
@@ -229,7 +230,7 @@ saveas(gcf,'figures/effect_of_basis.png')
 
 %% demo modeling just the AR part
 clear all
-A(:,:,1) = [[0.9 -0.5 0]',[0 0 0]']; A(:,:,2) = [[-.5 0.4 0]',[0.5 -.7 0]'];
+A(:,:,1) = [[0 0 0]',[0. -0.5 0]']; A(:,:,2) = [[-.5 0.4 0]',[0.5 -.7 0]'];
 ydim = size(A,2); xdim=0;
 B=zeros(0,ydim,0);
 na=size(A,1); nb=size(B,1); gamma=0.5;
@@ -237,12 +238,18 @@ x=randn(200,xdim); % no external input
 [y,e] = varx_simulate(B,A,x,1);
 
 [Aest,Best,A_pval,B_pval] = varx(y,na);
-A_pval,B_pval
+A_pval
 
 [yest,e] = varx_simulate(Best,Aest,x,y);
 
+% estimate the Ainv
+[~,Ainv] = varx_trf(Best,Aest,100);
+
 figure(4)
-show_results(x,y,yest,Aest,Best,A_pval,B_pval);
+% abusing show_result function to also show Ainv instead of Best
+show_results(x,y,yest,Aest,Ainv,A_pval,A_pval);
+% correcting the abuse by correcting titles
+for i=1:ydim, subplot(4,ydim,3*ydim+i); title(['AR inverse ' num2str(i)]); end
 
 figure(5); clf
 plot(A(:),Aest(:),'o'); hold on
@@ -274,7 +281,6 @@ A_pval,B_pval
 
 figure(4)
 show_results(x,y,yest,Aest,Best,A_pval,B_pval);
-
 
 figure(5); clf
 plot(A(:),Aest(:),'o'); hold on
@@ -356,13 +362,6 @@ x=zeros(2000,xdim); % no external input
 % simulate 
 [y,e] = varx_simulate(B,A,x,1);
 
-% low-pass one of the channels
-[b,a]=butter(4,0.5,'low'); 
-y=filter(1,[1 -0.9 0.3],y);
-%y=resample(y,1,2); x=zeros(1000,xdim); A=resample(A,1,2); na=na/2;
-for i=1:ydim, a=lpc(y(:,i),2); y(:,i)=filter(a,1,y(:,i)); end; 
-
-
 % estimate VARX model 
 gamma = 0.0
 [Aest,~,A_pval,~] = varx(y,na,[],[],gamma); A_pval
@@ -385,14 +384,14 @@ xlabel('true value'); ylabel('estimate')
 sgtitle('Simulated VARX and estimation')
 
 
-return
+
 
 % ----------------- result display function --------------------------
 function show_results(x,y,yest,A,B,A_pval,B_pval)
 
 clf
-ydim = size(y,2);
-xdim = size(x,2);
+ydim = size(A,2);
+xdim = size(B,3);
 for i=1:ydim
     subplot(4,2,1); plot(x); title('External Inputs');    
     subplot(4,2,2); plot(y); title('Recursive Input');    

@@ -64,6 +64,8 @@ function [A,B,A_pval,B_pval,A_D,B_D,T] = varx(Y,na,X,nb,gamma)
 %     12/10/2023 computation of y power now inside myxcorr() to allow removal of NaN
 %     12/12/2023 determine T inside myxcorr() to account for data actually used in the fit. 
 %     01/09/2024 returns D and T, with D/T as a rough measure of effect size
+%     04/01/2024 found out that basis function with regularization and slow
+%     y sig
 
 % If not simulating eXternal MA channel then xdim=0
 if nargin<3 | nb==0, X=[]; nb=0; end 
@@ -79,7 +81,7 @@ xdim = size(X{1},2);
 if length(nb)>1   
     for i=1:ydim, base{i}=eye(na); end
     for i=1:xdim, base{end+1} = nb; end
-    [nb,bparams]=size(nb); % lags acording and number of parameters according to basis
+    [nb,bparams]=size(nb); % lags according and number of parameters according to basis
 else 
     base = cell(ydim+xdim,1); % empty bases
     bparams = nb; % number of parameters same as number of lags
@@ -116,6 +118,10 @@ if ~exist('gamma','var') || isempty(gamma)
     gamma = 0; % no regularization
 else 
     gamma = gamma/sqrt(T-sum(lags)); % regularization decreasing with degrees of freedom
+    if ~isempty(base{1})
+        gamma = 0;
+        warning('Turning off regularization as it is no guaranteed to give correct p-values when using basis functions.')
+    end
 end
 
 tic 
