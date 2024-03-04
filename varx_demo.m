@@ -4,9 +4,9 @@ clear all
 load SteamEng % arbitrary data to demo the code, not to test performance!
 x=[Pressure,MagVolt]; % some multidimentional input
 y=[GenVolt,Speed];
-na=10; nb=20; gamma=0.3;
+na=10; nb=20; lambda=0;
 
-[Aest,Best,A_pval,B_pval] = varx(y,na,x,nb,gamma);
+[Aest,Best,A_pval,B_pval] = varx(y,na,x,nb,lambda);
 A_pval,B_pval
 
 yest = varx_simulate(Best,Aest,x,y);
@@ -28,13 +28,13 @@ B = [[2 0]',[0 0]']; % single input. the varm estimate only works for zero delay
 
 % simulate 
 figure(1); clf
-gamma = 0;
+lambda = 0.0;
 T = 1000;
 x = randn(T,xdim)+2;
 [y,e] = varx_simulate(B,A,x,1); y=y+2; 
 
 % estimate VARX model
-[Aest,Best,A_pval,B_pval] = varx(y,na,x,nb,gamma);
+[Aest,Best,A_pval,B_pval] = varx(y,na,x,nb,lambda);
 
 [yest,eest] = varx_simulate(Best,Aest,x,y);
 
@@ -83,8 +83,7 @@ for nt = 1:length(T)
         [y,e] = varx_simulate(B,A,x,2); 
   %      x(30,1) = NaN;         % test if addeind nan works 
         for i=1:length(lambda)
-            gamma = lambda(i)/sqrt(T(nt)-na*ydim-nb*xdim);
-            [Aest,Best,A_pval,B_pval] = varx(y(1:T(nt),:),na,x(1:T(nt),:),nb,gamma);
+            [Aest,Best,A_pval,B_pval] = varx(y(1:T(nt),:),na,x(1:T(nt),:),nb,lambda(i));
             Apresent(i,nt,nrand)=A_pval(1,2); 
             Amissing(i,nt,nrand)=A_pval(2,1);
             Bpresent(i,nt,nrand)=B_pval(2,2); 
@@ -97,11 +96,11 @@ for nt = 1:length(T)
     subplot(2,2,1)
     errorbar(lambda, mean(E_train,3),std(E_train,[],3)/sqrt(size(E_train,3))); 
     ylabel('Training Error'); xlabel('\lambda')
+    legend(str{:},'location','northwest')
     subplot(2,2,2)
     errorbar(lambda, mean(E_test, 3),std(E_test ,[],3)/sqrt(size(E_test ,3))); 
     ylabel('Test Error'); 
     clear str; for i=1:length(T), str{i}=['T=' num2str(T(i))]; end; 
-    legend({str{:},'location','northeast'})
     xlabel('\lambda')
     subplot(2,2,3); 
     plot(lambda,mean(Apresent<0.05,3)); hold on
@@ -125,18 +124,19 @@ B = [[1 0 0 0 -1 0 0 0 0 1 0 0 -1 ]',[0 0 0 0 0 0 0 0 0 0 0 0 0 ]']; % the varm 
 [nb,ydim,xdim] = size(B);
 [na,ydim,ydim] = size(A);
 clear A_pval B_pval
+lambda = 1;
 for n=1000:-1:1
     x = randn(100,size(B,3)); 
     y = varx_simulate(B,A,x,1); 
     x(30,1) = NaN; % test if adding NaN works
-    [~,~,A_pval(:,:,n),B_pval(:,:,n)] = varx(y,na,x,nb,0.3);
+    [~,~,A_pval(:,:,n),B_pval(:,:,n)] = varx(y,na,x,nb,lambda);
 end
 mean(A_pval<0.05,3)
 mean(B_pval<0.05,3)
 
 %% now do it with some larger models
 clear all
-na = 2; ydim=3;
+na = 2; ydim=10;
 nb = 2; xdim=1;
 for i=1:ydim, 
     for j=1:ydim, A(:,i,j) = 0.1*randn(na,1); end; 
@@ -145,11 +145,12 @@ end
 % set two of the paths to zero, to see if we correctly identify them at alpha<0.05
 A(:,2,end)=0;
 B(:,1,end)=0;
+lambda=0.1;
 clear A_pval B_pval
-for n=100:-1:1
+for n=1000:-1:1
     x = randn(2000,xdim);
     y = varx_simulate(B,A,x,1);
-    [~,~,A_pval(:,:,n),B_pval(:,:,n)] = varx(y,na,x,nb,0.1);
+    [~,~,A_pval(:,:,n),B_pval(:,:,n)] = varx(y,na,x,nb,lambda);
 end
 mean(A_pval<0.05,3)
 mean(B_pval<0.05,3)'
@@ -162,11 +163,11 @@ B = [[1 0.5 0 -0.5]',[0 0 0 0]']; % basis coefficients
 [nb,ydim,xdim] = size(B);
 [na,ydim,ydim] = size(A);
 base = basis(30,nb,'normal');
-gamma = 1;
+lambda = 0.1;
 
 x = randn(100,xdim);
 y = varx_simulate(tensorprod(base,B,2,1),A,x,1);
-[Aest,Best,A_pval,B_pval] = varx(y,na,x,base,gamma)
+[Aest,Best,A_pval,B_pval] = varx(y,na,x,base,lambda)
 
 yest = varx_simulate(tensorprod(base,Best,2,1),A,x,y);
 % x(30,1) = NaN; % test if adding NaN works
@@ -233,7 +234,7 @@ clear all
 A(:,:,1) = [[0 0 0]',[0. -0.5 0]']; A(:,:,2) = [[-.5 0.4 0]',[0.5 -.7 0]'];
 ydim = size(A,2); xdim=0;
 B=zeros(0,ydim,0);
-na=size(A,1); nb=size(B,1); gamma=0.5;
+na=size(A,1); nb=size(B,1); lambda=0.5;
 x=randn(200,xdim); % no external input
 [y,e] = varx_simulate(B,A,x,1);
 
@@ -363,8 +364,8 @@ x=zeros(2000,xdim); % no external input
 [y,e] = varx_simulate(B,A,x,1);
 
 % estimate VARX model 
-gamma = 0.0
-[Aest,~,A_pval,~] = varx(y,na,[],[],gamma); A_pval
+lambda = 0.0
+[Aest,~,A_pval,~] = varx(y,na,[],[],lambda); A_pval
 
 % simulate equaiton error model with the estimated Aest
 yest = varx_simulate(B,Aest,x,y);

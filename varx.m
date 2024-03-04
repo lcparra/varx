@@ -1,6 +1,6 @@
-function [A,B,A_pval,B_pval,A_D,B_D,T] = varx(Y,na,X,nb,gamma)
+function [A,B,A_pval,B_pval,A_D,B_D,T] = varx(Y,na,X,nb,lambda)
 
-% [A,B] = varx(Y,na,X,nb,gamma) fits an vectorial ARX model to the MIMO
+% [A,B] = varx(Y,na,X,nb,lambda) fits an vectorial ARX model to the MIMO
 % system output Y with input X by minimizing the equation error e(t), i.e.
 % equation error model:
 %
@@ -9,7 +9,7 @@ function [A,B,A_pval,B_pval,A_D,B_D,T] = varx(Y,na,X,nb,gamma)
 % where * represents a convolution.  Model (filter) parameters A and B are
 % found with conventional least squares with ridge regression. They are
 % stored as tensor of size [na,ydim,ydim] and [nb,ydim,xdim] respectively.
-% na and nb are the legth of the filters. gamma is the regularization for
+% na and nb are the legth of the filters. lambda is the regularization for
 % the ridge (shrinkage) regularization and defaults to 0 and should not be
 % selected larger than 1. Note that x(t) represents the history including
 % the current sample in the input. Thus, we are allowing for instant
@@ -21,18 +21,18 @@ function [A,B,A_pval,B_pval,A_D,B_D,T] = varx(Y,na,X,nb,gamma)
 % [A,B,,A_pval,B_pval] = varx(Y,na ...) computes P-values for each channel
 % (for all delays together) using the Deviance formalism.
 %
-% varx(Y,na,X,base,gamma) If base is not a scalar, it is assumed that it
+% varx(Y,na,X,base,lambda) If base is not a scalar, it is assumed that it
 % represent basis functions for filters B of size [filter length, number of
 % basis functions]. B will have size [size(base,2),ydim,xdim], i.e. as many
 % parameers for each path as basis functions. The actual filters can be
 % obtained as tensorprod(base,B,2,1);
 %
-% varx(Y,na,X,nb,gamma) If Y is a cell array, then the model is fit on all
+% varx(Y,na,X,nb,lambda) If Y is a cell array, then the model is fit on all
 % data records in X and Y. All elements in the cell arrays X and Y have to
 % have the same xdim and ydim, but may have different numer of rows (time
 % samples).
 %
-% [A,~,A_pval] = varx(Y,na) Only fitst the AR portion. To provide gamma,
+% [A,~,A_pval] = varx(Y,na) Only fitst the AR portion. To provide lambda,
 % set set x=[] and nb=0.
 % 
 % If the intention is to only fit a MA model, then the Granger formalism
@@ -48,7 +48,7 @@ function [A,B,A_pval,B_pval,A_D,B_D,T] = varx(Y,na,X,nb,gamma)
 %     07/11/2023 put duplicade code into model_fit function
 %     08/01/2023 transposed A, B to match varx_filter.m and varm.m, 
 %     08/02/2023 corrected scaling of Bias term. 
-%     08/06/2023 scalling gamma with 1/(T-sum(lags)) for correct pvalue for large T
+%     08/06/2023 scalling gamma=lambda/(T-sum(lags)) for correct pvalue for large T
 %     08/09/2023 error computed using Rxx, Rxy, h, and scaled LLR with T-sum(lags)+lags(i) for correct pvalues for small T and unequal lags
 %     08/10/2023 moved computation of yest to varx_simulate()
 %     08/16/2023 converted format of A,B to 3D tensor
@@ -58,14 +58,12 @@ function [A,B,A_pval,B_pval,A_D,B_D,T] = varx(Y,na,X,nb,gamma)
 %     08/31/2023 changed input history to include current sample x(t) as predictor
 %     09/01/2023 ignore x argument for nb=0 
 %     09/11/2023 changed the order of input arguments
-%     09/13/2023 scaling of gamma with 1/sqrt(T-sum(lags)) to make optimal
 %     regularization range be between 0-1 with increasing T (based on
 %     simulaitons)
 %     12/10/2023 computation of y power now inside myxcorr() to allow removal of NaN
 %     12/12/2023 determine T inside myxcorr() to account for data actually used in the fit. 
 %     01/09/2024 returns D and T, with D/T as a rough measure of effect size
-%     04/01/2024 found out that basis function with regularization and slow
-%     y sig
+%     04/03/2024 Changed to Tikhonov regularization so that all variables have same regularization regardless of power. pvalues otherwise not correct when power very different after applying basis functions 
 
 % If not simulating eXternal MA channel then xdim=0
 if nargin<3 | nb==0, X=[]; nb=0; end 
@@ -114,13 +112,11 @@ end
 my_toc('time to compute correlations',5)
 
 
-if ~exist('gamma','var') || isempty(gamma) 
+if ~exist('lambda','var') || isempty(lambda) 
     gamma = 0; % no regularization
 else 
-    gamma = gamma/sqrt(T-sum(lags)); % regularization decreasing with degrees of freedom
+    gamma = lambda/sqrt(T-sum(lags)); % regularization decreasing with degrees of freedom
     if ~isempty(base{1})
-        gamma = 0;
-        warning('Turning off regularization as it is no guaranteed to give correct p-values when using basis functions.')
     end
 end
 
@@ -160,11 +156,12 @@ if ~isempty(base{1})
     Rxy = B'*Rxy;
 end
 
-% Ridge regularizer
-I = eye(size(Rxx))*mean(real(eig(Rxx)));
+% Regularizer
+% Gamma = gamma*eye(size(Rxx))*mean(real(eig(Rxx))); % ridge regularizer, suppress extreme values
+Gamma = gamma*diag(diag(Rxx)); % Tikhonov, scaled for all variables to be regularized equally, regardless of magnitude
 
 % Least squares estimate with regularization
-h = (Rxx+gamma*I)\Rxy;
+h = (Rxx+Gamma)\Rxy;
 
 % mean error square
 Rxyest = Rxx*h;
