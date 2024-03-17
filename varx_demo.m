@@ -2,18 +2,16 @@
 %% VARX identification on real data
 clear all
 load SteamEng % arbitrary data to demo the code, not to test performance!
-x=[Pressure,MagVolt]; % some multidimentional input
-y=[GenVolt,Speed];
+x=[Pressure,MagVolt]; xname = {'Pressure','MagVolt'}; 
+y=[GenVolt,Speed]; yname = {'GenVolt','Speed'};
 na=10; nb=20; lambda=0;
 
-[Aest,Best,A_pval,B_pval] = varx(y,na,x,nb,lambda);
-A_pval,B_pval
+model = varx(y,na,x,nb,lambda);
 
-yest = varx_simulate(Best,Aest,x,y);
+yest = varx_simulate(model.B,model.A,x,y);
 
-figure(3)
-show_results(x,y,yest,Aest,Best,A_pval,B_pval);
-sgtitle('Real data exampe')
+figure(1); show_prediction(x,y,yest);
+figure(2); varx_display(model,xname=xname,yname=yname,IR_duration=nb);
 
 
 %% generate a data with known VARX model and compare varx result with matlab's varm estimate
@@ -34,9 +32,9 @@ x = randn(T,xdim)+2;
 [y,e] = varx_simulate(B,A,x,1); y=y+2; 
 
 % estimate VARX model
-[Aest,Best,A_pval,B_pval] = varx(y,na,x,nb,lambda);
+model = varx(y,na,x,nb,lambda);
 
-[yest,eest] = varx_simulate(Best,Aest,x,y);
+[yest,eest] = varx_simulate(model.B,model.A,x,y);
 
 R2=1-sum(eest.^2)./sum(y.^2)
 
@@ -46,16 +44,15 @@ Mdl = varm(ydim,na);
 EstMdl = estimate(Mdl,y,'X',x);
 
 % some displays
-figure(1)
-show_results(x,y,yest,Aest,Best,A_pval,B_pval);
-sgtitle('Simulated VARX and estimation')
+figure(3); varx_display(model);
+figure(4); show_prediction(x,y,yest);
 
 % compare estimate to truth
 figure(2); clf
 for t=1:na, for i=1:ydim, for j=1:ydim, AR{i,j}(t) = EstMdl.AR{t}(i,j); end; end; end;
-plot(A(:),Aest(:),'.'); hold on;
+plot(A(:),model.A(:),'.'); hold on;
 plot(A(:),stack([AR{:}]),'.');
-plot(B(:),Best(:),'x')
+plot(B(:),model.B(:),'x')
 plot(B(1,:),EstMdl.Beta(:),'x')
 plot([-1 1],[-1 1]); hold off
 ylim([-1.5 1.5]); %axis equal; axis tight
@@ -83,16 +80,17 @@ for nt = 1:length(T)
         [y,e] = varx_simulate(B,A,x,2); 
   %      x(30,1) = NaN;         % test if addeind nan works 
         for i=1:length(lambda)
-            [Aest,Best,A_pval,B_pval] = varx(y(1:T(nt),:),na,x(1:T(nt),:),nb,lambda(i));
-            Apresent(i,nt,nrand)=A_pval(1,2); 
-            Amissing(i,nt,nrand)=A_pval(2,1);
-            Bpresent(i,nt,nrand)=B_pval(2,2); 
-            Bmissing(i,nt,nrand)=B_pval(1,2);
-            [yest,eest] = varx_simulate(Best,Aest,x,y);
+            model = varx(y(1:T(nt),:),na,x(1:T(nt),:),nb,lambda(i));
+            Apresent(i,nt,nrand)=model.A_pval(1,2); 
+            Amissing(i,nt,nrand)=model.A_pval(2,1);
+            Bpresent(i,nt,nrand)=model.B_pval(2,2); 
+            Bmissing(i,nt,nrand)=model.B_pval(1,2);
+            [yest,eest] = varx_simulate(model.B,model.A,x,y);
             E_train(i,nt,nrand)= mean(sum(eest(1:T(nt)    ,:).^2)./sum(y(1:T(nt)    ,:).^2));
             E_test (i,nt,nrand)= mean(sum(eest(T(nt)+1:2*T(nt),:).^2)./sum(y(T(nt)+1:2*T(nt),:).^2));
         end
     end
+    clear str; for i=1:length(T), str{i}=['T=' num2str(T(i))]; end;
     subplot(2,2,1)
     errorbar(lambda, mean(E_train,3),std(E_train,[],3)/sqrt(size(E_train,3))); 
     ylabel('Training Error'); xlabel('\lambda')
@@ -100,7 +98,6 @@ for nt = 1:length(T)
     subplot(2,2,2)
     errorbar(lambda, mean(E_test, 3),std(E_test ,[],3)/sqrt(size(E_test ,3))); 
     ylabel('Test Error'); 
-    clear str; for i=1:length(T), str{i}=['T=' num2str(T(i))]; end; 
     xlabel('\lambda')
     subplot(2,2,3); 
     plot(lambda,mean(Apresent<0.05,3)); hold on
@@ -129,7 +126,8 @@ for n=1000:-1:1
     x = randn(100,size(B,3)); 
     y = varx_simulate(B,A,x,1); 
     x(30,1) = NaN; % test if adding NaN works
-    [~,~,A_pval(:,:,n),B_pval(:,:,n)] = varx(y,na,x,nb,lambda);
+    model = varx(y,na,x,nb,lambda);
+    A_pval(:,:,n)=model.A_pval; B_pval(:,:,n)=model.B_pval;
 end
 mean(A_pval<0.05,3)
 mean(B_pval<0.05,3)
@@ -150,7 +148,9 @@ clear A_pval B_pval
 for n=1000:-1:1
     x = randn(2000,xdim);
     y = varx_simulate(B,A,x,1);
-    [~,~,A_pval(:,:,n),B_pval(:,:,n)] = varx(y,na,x,nb,lambda);
+    model = varx(y,na,x,nb,lambda);
+    A_pval(:,:,n)=model.A_pval; B_pval(:,:,n)=model.B_pval;
+
 end
 mean(A_pval<0.05,3)
 mean(B_pval<0.05,3)'
@@ -167,17 +167,18 @@ lambda = 0.1;
 
 x = randn(100,xdim);
 y = varx_simulate(tensorprod(base,B,2,1),A,x,1);
-[Aest,Best,A_pval,B_pval] = varx(y,na,x,base,lambda)
+model = varx(y,na,x,base,lambda);
 
-yest = varx_simulate(tensorprod(base,Best,2,1),A,x,y);
+yest = varx_simulate(model.B,model.A,x,y);
 % x(30,1) = NaN; % test if adding NaN works
 
-figure(4)
-show_results(x,y,yest,Aest,Best,A_pval,B_pval);
+
+figure(3); varx_display(model);
+figure(4); show_prediction(x,y,yest);
 
 figure(5); clf
-plot(A(:),Aest(:),'o'); hold on
-plot(B(:),Best(:),'o'); 
+plot(A(:),model.A(:),'o'); hold on
+plot(B(:),model.B_coeff(:),'o'); 
 plot([-1 1],[-1 1],':k'); hold off
 xlabel('True values'); ylabel('Estimated values')
 legend('AR coeeficients','MA basis coefficients','location','northwest')
@@ -189,16 +190,18 @@ B = [[1 0.5 0 -0.5]',[0 0 0 0]']; % basis coefficients
 [nb,ydim,xdim] = size(B);
 [na,ydim,ydim] = size(A);
 base = basis(60,nb,'normal');
+B = tensorprod(base,B,2,1);
 
 for n=5000:-1:1
     x = randn(300,xdim);
     % generate using basis function
-    y = varx_simulate(tensorprod(base,B,2,1),A,x,1);
+    y = varx_simulate(B,A,x,1);
     % estimate using basis functions
-    [~,Best_b,A_pval_b(:,:,n),B_pval_b(:,:,n)]  = varx(y,na,x,base);    
-    Best_b = tensorprod(base,Best_b,2,1);
+    model_b = varx(y,na,x,base); 
+    A_pval_b(:,:,n)=model_b.A_pval; B_pval_b(:,:,n)=model_b.B_pval;
     % estimate all parameters
-    [~,Best,A_pval(:,:,n),B_pval(:,:,n)]  = varx(y,na,x,size(base,1));
+    model = varx(y,na,x,nb);
+    A_pval(:,:,n)=model.A_pval; B_pval(:,:,n)=model.B_pval;
 end
 %%
 clf
@@ -215,9 +218,9 @@ set(gca,'XTickLabel',{'free','basis'})
 xlabel('Estimate')
 haxis(2)=subplot(1,3,2);
 for i=1:2
-    plot(Best(:,i),'b'); hold on;
-    plot(Best_b(:,i),'r');
-    plot(tensorprod(base,B(:,i),2,1),'g'); 
+    plot(model.B(:,i),'b'); hold on;
+    plot(model_b.B(:,i),'r');
+    plot(B(:,i),'g'); 
 end
 legend('free estimate','basis estimate','true MA filter')
 hold off
@@ -227,7 +230,7 @@ haxis(3)=subplot(1,3,3); plot(base);
 xlabel('lag (samples)'); ylabel('basis functions')
 sublabel(haxis,-5,-40);
 
-saveas(gcf,'figures/effect_of_basis.png')
+%saveas(gcf,'figures/effect_of_basis.png')
 
 %% demo modeling just the AR part
 clear all
@@ -238,23 +241,15 @@ na=size(A,1); nb=size(B,1); lambda=0.5;
 x=randn(200,xdim); % no external input
 [y,e] = varx_simulate(B,A,x,1);
 
-[Aest,Best,A_pval,B_pval] = varx(y,na);
-A_pval
+model = varx(y,na);
+model.A_pval
 
-[yest,e] = varx_simulate(Best,Aest,x,y);
+figure(3); varx_display(model,yname={'y1','y2'},duration=20);
 
-% estimate the Ainv
-[~,Ainv] = varx_trf(Best,Aest,100);
-
-figure(4)
-% abusing show_result function to also show Ainv instead of Best
-show_results(x,y,yest,Aest,Ainv,A_pval,A_pval);
-% correcting the abuse by correcting titles
-for i=1:ydim, subplot(4,ydim,3*ydim+i); title(['AR inverse ' num2str(i)]); end
 
 figure(5); clf
-plot(A(:),Aest(:),'o'); hold on
-plot(B(:),Best(:),'o'); 
+plot(A(:),model.A(:),'o'); hold on
+plot(B(:),model.B(:),'o'); 
 plot([-1 1],[-1 1],':k'); hold off
 xlabel('True values'); ylabel('Estimated values')
 legend('AR coeeficients','location','northwest')
@@ -272,28 +267,32 @@ x=randn(200,xdim); % no external input
 [y,e] = varx_simulate(B,A,x,1);
 
 
-A_pval = nan(ydim,ydim); % off dianoal elements are not computed, make sure that is clear. 
+model.A_pval = nan(ydim,ydim); % off dianoal elements are not computed, make sure that is clear. 
+model.A_Deviance = nan(ydim,ydim); % off dianoal elements are not computed, make sure that is clear. 
 for i=1:ydim
-    [Aest(:,i,i),Best(:,i,:),A_pval(i,i),B_pval(i,:)] = varx(y(:,i),na,x,nb);
+    m = varx(y(:,i),na,x,nb);
+    model.A(:,i,i)=m.A;
+    model.B(:,i,:)=m.B;
+    model.A_pval(i,i)=m.A_pval;
+    model.B_pval(i,:)=m.B_pval;
+    model.A_Deviance(i,i)=m.A_Deviance;
+    model.B_Deviance(i,:)=m.B_Deviance;
+    model.T = m.T;
 end
-A_pval,B_pval
+model.A_pval,model.B_pval
 
-[yest,e] = varx_simulate(Best,Aest,x,y);
+[yest,e] = varx_simulate(model.B,model.A,x,y);
 
-figure(4)
-show_results(x,y,yest,Aest,Best,A_pval,B_pval);
+figure(3); varx_display(model,yname={'y1','y2'},xname={'x1','x2'},duration=20);
+figure(4); show_prediction(x,y,yest);
 
 figure(5); clf
-plot(A(:),Aest(:),'o'); hold on
-plot(B(:),Best(:),'o'); 
+plot(A(:),model.A(:),'o'); hold on
+plot(B(:),model.B(:),'o'); 
 plot([-1 1],[-1 1],':k'); hold off
 xlabel('True values'); ylabel('Estimated values')
 legend('MA coeeficients','location','northwest')
 
-% derive the corresponding impulse responses
-figure(6); clf
-H = varx_trf(Best,Aest,20);
-imagesc(H(:,:))
 
 %% now try fitting model with a missing input variable 
 
@@ -310,39 +309,35 @@ x = randn(1000,xdim);
 [y,e] = varx_simulate(B,A,x,1);
 
 % estimate VARX model misspecified assuming there is no input
-[Aest,~,A_pval_missing_input,B_pval] = varx(y,na); A_pval_missing_input
+model = varx(y,na); 
 
 % simulate varx without the external imput (I know, its cumbersome) 
-yest = varx_simulate(zeros(0,ydim,0),Aest,zeros(size(y,1),0),y);
+yest = varx_simulate(zeros(0,ydim,0),model.A,zeros(size(y,1),0),y);
 
 % some displays
 figure(1)
-show_results([],y,yest,Aest,[],A_pval_missing_input,[]);
-sgtitle('Simulated VARX and estimation')
+varx_display(model);
+sgtitle('Simulated VARX and estimation with missing input')
 
 % compare estimate to truth
 figure(2); clf
-plot(A(:),Aest(:),'.'); hold on;
+plot(A(:),model.A(:),'.'); hold on;
 plot([-1 1],[-1 1]); hold off
 xlabel('true value'); ylabel('estimate')
-sgtitle('Simulated VARX and estimation')
 
 % estimate VARX model now with the input included
-[Aest,Best,A_pval_input_included,B_pval] = varx(y,na,x,nb); A_pval_input_included
-
-yest = varx_simulate(Best,Aest,x,y);
+model = varx(y,na,x,nb); 
 
 % some displays
 figure(3)
-show_results(x,y,yest,Aest,Best,A_pval_input_included,B_pval);
-sgtitle('Simulated VARX and estimation')
+varx_display(model);
+sgtitle('Simulated VARX and estimation with input included')
 
 % compare estimate to truth
 figure(4); clf
-plot(A(:),Aest(:),'.'); hold on;
+plot(A(:),model.A(:),'.'); hold on;
 plot([-1 1],[-1 1]); hold off
 xlabel('true value'); ylabel('estimate')
-sgtitle('Simulated VARX and estimation')
 
 
 %% model long smooth AR coefficients, see if we recover them correctly. 
@@ -352,7 +347,7 @@ A(:,:,1) = [[0.1 -0.5 0]',[.1 0 0]']; A(:,:,2) = [[-0.1 0 0]',[0.05 -.7 0]'];
 [na,ydim,ydim] = size(A);
 base = basis(30,na,'normal');
 A = tensorprod(base,A,2,1);
-[na,ydim,ydim] = size(A)
+[na,ydim,ydim] = size(A);
 
 % make dummy input B, x
 xdim=0;
@@ -364,22 +359,19 @@ x=zeros(2000,xdim); % no external input
 [y,e] = varx_simulate(B,A,x,1);
 
 % estimate VARX model 
-lambda = 0.0
-[Aest,~,A_pval,~] = varx(y,na,[],[],lambda); A_pval
+lambda = 0.0;
+model = varx(y,na,[],[],lambda); 
 
 % simulate equaiton error model with the estimated Aest
-yest = varx_simulate(B,Aest,x,y);
+yest = varx_simulate(B,model.A,x,y);
 
 % some displays
-figure(1)
-show_results([],y,yest,Aest,[],A_pval,[]);
-sgtitle('Simulated VARX and estimation')
-plot(A(:,:)); hold on
-plot(Aest(:,:)); hold off
+figure(1); varx_display(model);
+figure(2); show_prediction(x,y,yest);
 
 % compare estimate to truth
-figure(2); clf
-plot(A(:),Aest(:),'.'); hold on;
+figure(3); clf
+plot(A(:),model.A(:),'.'); hold on;
 plot([-1 1],[-1 1]); hold off
 xlabel('true value'); ylabel('estimate')
 sgtitle('Simulated VARX and estimation')
@@ -388,28 +380,17 @@ sgtitle('Simulated VARX and estimation')
 
 
 % ----------------- result display function --------------------------
-function show_results(x,y,yest,A,B,A_pval,B_pval)
+function show_prediction(x,y,yest)
 
 clf
-ydim = size(A,2);
-xdim = size(B,3);
+ydim = size(y,2);
+xdim = size(x,2);
 for i=1:ydim
-    subplot(4,2,1); plot(x); title('External Inputs');    
-    subplot(4,2,2); plot(y); title('Recursive Input');    
-    subplot(4,ydim,ydim*1+i); 
+    subplot(2,2,1); plot(x); title('External Inputs');
+    subplot(2,2,2); plot(y); title('Recursive Input');
+    subplot(2,ydim,ydim*1+i);
     plot([y(:,i) yest(:,i)]) % compare original to estimated output
     title(['Target and estimated output ' num2str(i)])
-    subplot(4,ydim,ydim*2+i); 
-    for j=1:ydim % show AR filters
-        plot(A(:,i,j),'LineWidth',0.5+(A_pval(i,j)<0.05)); hold on; 
-    end
-    hold off; title(['IIR filter estimates ' num2str(i)])
-    subplot(4,ydim,ydim*3+i); 
-    for j=1:xdim % show MA filters
-        plot(B(:,i,j),'LineWidth',0.5+(B_pval(i,j)<0.05)); hold on; 
-    end
-    hold off; title(['FIR filter estimates ' num2str(i)])
-    xlabel('time delay (samples)')
-end
 end
 
+end
