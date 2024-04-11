@@ -59,7 +59,7 @@ clf
 [nb,~,Dx] = size(m.B);
 [na,~,Dy] = size(m.A);
 
-if ~isempty(o.yname) && strcmp(o.plottype, 'Graph')
+if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
 
     pval = [m.A_pval m.B_pval; ones(Dx,Dy+Dx)];
 
@@ -106,7 +106,9 @@ if ~isempty(o.yname) && strcmp(o.plottype, 'Graph')
     subplot(2,3,2)
     imagesc(A_Rvalue.*A_Adj); ylabel('Effect on y(t)'); xlabel('Cause y(t-1)');
     title('A R-values'); axis equal; axis tight; xlabel(colorbar,'R'); 
-    clim([0 max(max(A_Rvalue-diag(diag(A_Rvalue))))]); % clip the diagonal values which are much larger
+    if ~(max(max(A_Rvalue-diag(diag(A_Rvalue))))) == 0
+        clim([0 max(max(A_Rvalue-diag(diag(A_Rvalue))))]); % clip the diagonal values which are much larger
+    end
     set(gca,"YTick",[1:length(o.yname)]); set(gca,"YTickLabel",node_name(1:length(o.yname)),"YTickLabelRotation",45)
     set(gca,"XTick",[1:length(o.yname)]); set(gca,"XTickLabel",node_name(1:length(o.yname)),"XTickLabelRotation",45)
     
@@ -159,7 +161,7 @@ if ~isempty(o.yname) && strcmp(o.plottype, 'Graph')
         title(h,'Response of')
     end
 
-elseif ~isempty(o.yname) && strcmp(o.plottype, 'Matrix')
+elseif ~isempty(o.yname) && strcmpi(o.plottype, 'Matrix')
 
     node_name = [o.yname(:)' o.xname(1:Dx)];
     % sqrt of Coeficient of variation, i.e. R-square
@@ -185,7 +187,7 @@ elseif ~isempty(o.yname) && strcmp(o.plottype, 'Matrix')
     end
    
 
-elseif ~isempty(o.yname) && strcmp(o.plottype, 'Default')
+elseif isempty(o.yname) || strcmpi(o.plottype, 'Default')
 
     % sqrt of Coeficient of variation, i.e. R-square
     A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
@@ -221,7 +223,10 @@ elseif ~isempty(o.yname) && strcmp(o.plottype, 'Default')
 
     if o.duration, subplot(3,2,5), else subplot(3,1,3), end
     imagesc((1:size(m.B,1))/o.fs,1:Dy*Dx,reshape(m.B,nb,Dy*Dx)'); ylabel('Effect on y(t)'); 
-    clim([-1 1]*max(abs(m.B(:)))); colorbar
+    if ~isempty(max(abs(m.B(:))))
+        clim([-1 1]*max(abs(m.B(:))));
+    end
+    colorbar
     hold on; for i=1:Dx-1, plot([1 size(m.B,1)]/o.fs,[Dy Dy]*i+0.5,'k'); end; hold off
     if o.fs==1, xlabel('... from x(t), lag (samples)'); else xlabel('... from x(t), lag (seconds)'); end
     title('MA filter B')
