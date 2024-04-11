@@ -111,7 +111,7 @@ for nt = 1:length(T)
     drawnow
 end
 
-%saveas(gcf,'figures/effect_of_regularization.png')
+%saveas(gcf,'../figures/effect_of_regularization.png')
 
 
 %% try repeating this 1000 times and see if the pvalues are correct
@@ -230,7 +230,7 @@ haxis(3)=subplot(1,3,3); plot(base);
 xlabel('lag (samples)'); ylabel('basis functions')
 sublabel(haxis,-5,-40);
 
-%saveas(gcf,'figures/effect_of_basis.png')
+%saveas(gcf,'../figures/effect_of_basis.png')
 
 %% demo modeling just the AR part
 clear all
