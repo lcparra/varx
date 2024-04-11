@@ -9,32 +9,39 @@ function [Graph,G_plot]=varx_display(m,o)
 % A,B,A_pval,B_pval,A_Deviance,B_Deviance,T.base as created by model =
 % varx(). 
 % 
-% options are name=value optional arguments:  yname,xname,duration,fs,threshold
+% options are name=value optional arguments: yname,xname,duration,fs,threshold, plottype
 %
-% yname,xname are cell arrays that specify the names of input x and output
-% y in the model. If they are provided, then model structure is displayed
-% as a circular graph, and Graph and G_plot can be used to plot with:
+% yname,xname: cell arrays that specify the names of input x and output
+%              y in the model. If they are provided, and plottype 'Graph' is selected, 
+%              then model structure is displayed as a circular graph, 
+%              and Graph and G_plot can be used to plot with:
 %
 % plot(Graph,'LineWidth',G_plot.width,'XData',G_plot.xdata,'YData',G_plot.ydata,...
 %            'EdgeColor',G_plot.color,'NodeColor',G_plot.nodecolor);
 %
-% If variable ynames is not provided, everything is shown as matrix
-% instead. Suggest to use this when there are a lot of variables in the
-% model.
+% Plotyype: if yname is not provided, plottype defaults to 'Default'
+%           'Default': everything is shown as matrix (R-values). 
+%                      Suggest to use this when there are a lot of variables in the model.
+%           'Matrix': R-value matrices with input x and output y names
+%           'Graph': digraph visualization, R-value matrices with input x
+%                    and output y names, and impulse responses, also
+%                    outputs digraph structures
 %
-% duration is a scalar indicating for how long to compute (display) the
-% impulse respones. IR are from every variable to every other variable. If
-% it is omited then the IR is not displayed. 
+% duration: a scalar indicating for how long to compute (display) the
+%           impulse respones. IR are from every variable to every other variable. If
+%           it is omited then the IR is not displayed. 
 %
-% fs is the sampling rate. If given, then filters and impulse response are
-% displayed in seconds.
+% fs: the sampling rate. If given, then filters and impulse response are
+%     displayed in seconds.
 %
-% threshold is the cutoff pvalue to display links. Only links (effect
-% size) below this cutoff will be displayed. The effect size is the R-value
-% (see varx.m for detail).
+% threshold: the cutoff pvalue to display links. Only links (effect
+%            size) below this cutoff will be displayed. The effect size is the R-value
+%            (see varx.m for detail).
 
 % March 11, 2024, Lucas Parra
 % March 16, 2024, changed to display R as effect size. added threshold as argument, and added options arguments 
+% April 1, 2024, Aimar Silvan, added display plottype: 'Matrix', 'Graph',
+%                              'Default', now also plots R-value matrices
 
 % define arguments with defaults for the options variables o
 arguments
@@ -44,6 +51,7 @@ arguments
     o.duration double = 0 % no impulse response is shown
     o.fs double = 1       % lags displayed in samples. 
     o.threshold double = 0.001 % only links with lower values shown
+    o.plottype char = 'Default'
 end
 
 clf
@@ -51,7 +59,7 @@ clf
 [nb,~,Dx] = size(m.B);
 [na,~,Dy] = size(m.A);
 
-if ~isempty(o.yname)
+if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
 
     pval = [m.A_pval m.B_pval; ones(Dx,Dy+Dx)];
 
@@ -59,7 +67,7 @@ if ~isempty(o.yname)
     Effect = [m.A_Deviance m.B_Deviance; zeros(Dx,Dy+Dx)]/m.T;
     Rvalue = sqrt(1-exp(-Effect)); 
 
-    subplot(2,1,1)
+    subplot(2,3,1)
 
     % plot connectivity as a graph
     node_name = [o.yname(:)' o.xname(1:Dx)];
@@ -86,9 +94,33 @@ if ~isempty(o.yname)
     else
         G_plot.color = 'none';
     end
+
     % now plot the Graph
     plot(Graph,'LineWidth',G_plot.width,'XData',G_plot.xdata,'YData',G_plot.ydata,'EdgeColor',G_plot.color,'Nodecolor',G_plot.nodecolor);
-    axis equal; axis off;
+    axis equal; axis off;    
+    A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
+    B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
+
+    % % plot the coefficient of variation as a matrix (only if significant)
+    A_Adj = Adj(1:length(o.yname),1:length(o.yname));
+    subplot(2,3,2)
+    imagesc(A_Rvalue.*A_Adj); ylabel('Effect on y(t)'); xlabel('Cause y(t-1)');
+    title('A R-values'); axis equal; axis tight; xlabel(colorbar,'R'); 
+    if ~(max(max(A_Rvalue-diag(diag(A_Rvalue))))) == 0
+        clim([0 max(max(A_Rvalue-diag(diag(A_Rvalue))))]); % clip the diagonal values which are much larger
+    end
+    set(gca,"YTick",[1:length(o.yname)]); set(gca,"YTickLabel",node_name(1:length(o.yname)),"YTickLabelRotation",45)
+    set(gca,"XTick",[1:length(o.yname)]); set(gca,"XTickLabel",node_name(1:length(o.yname)),"XTickLabelRotation",45)
+    
+    if ~isempty(B_Rvalue)
+        subplot(2,3,3)
+        imagesc(B_Rvalue.*(m.B_pval<o.threshold)); ylabel('Effect on y(t)'); 
+        xlabel('Cause x(t)'); axis equal; axis tight;set(gca,'xticklabel',{})
+        title('B R-values');  axis tight; xlabel(colorbar,'R');
+        set(gca,"YTick",[1:size(A_Rvalue,1)]); set(gca,"YTickLabel",node_name(1:size(A_Rvalue,2)),"YTickLabelRotation",45)
+        set(gca,"XTick",[1:size(B_Rvalue,1)]); set(gca,"XTickLabel",node_name(end-size(B_Rvalue,2)+1:end),"XTickLabelRotation",45)
+    end
+
 
     % make and plot the TRFs
     for i=1:Dy
@@ -129,12 +161,38 @@ if ~isempty(o.yname)
         title(h,'Response of')
     end
 
-else
+elseif ~isempty(o.yname) && strcmpi(o.plottype, 'Matrix')
+
+    node_name = [o.yname(:)' o.xname(1:Dx)];
+    % sqrt of Coeficient of variation, i.e. R-square
+    A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
+    B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
+    
+
+    % plot the coefficient of variation as a matrix (only if significant)
+    subplot(1,2,1)
+    imagesc(A_Rvalue.*(m.A_pval<o.threshold)); ylabel('Effect on y(t)'); xlabel('Cause y(t-1)');
+    title('A R-values'); axis equal; axis tight; xlabel(colorbar,'R'); 
+    clim([0 max(max(A_Rvalue-diag(diag(A_Rvalue))))]); % clip the diagonal values which are much larger
+    % clim([0 0.01])
+    set(gca,"YTick",[1:size(A_Rvalue,1)]); set(gca,"YTickLabel",node_name(1:size(A_Rvalue,2)),"YTickLabelRotation",45)
+    set(gca,"XTick",[1:size(A_Rvalue,1)]); set(gca,"XTickLabel",node_name(1:size(A_Rvalue,2)),"XTickLabelRotation",45)
+    if ~isempty(B_Rvalue)
+    subplot(1,2,2)
+        imagesc(B_Rvalue.*(m.B_pval<o.threshold)); ylabel('Effect on y(t)'); 
+        xlabel('Cause x(t)'); axis equal; axis tight;set(gca,'xticklabel',{})
+        title('B R-values');  axis tight; xlabel(colorbar,'R');
+        set(gca,"YTick",[1:size(A_Rvalue,1)]); set(gca,"YTickLabel",node_name(1:size(A_Rvalue,2)),"YTickLabelRotation",45)
+        set(gca,"XTick",[1:size(B_Rvalue,1)]); set(gca,"XTickLabel",node_name(end-size(B_Rvalue,2)+1:end),"XTickLabelRotation",45)
+    end
+   
+
+elseif isempty(o.yname) || strcmpi(o.plottype, 'Default')
 
     % sqrt of Coeficient of variation, i.e. R-square
     A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
     B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
-
+    
     % plot the coefficient of variation as a matrix (only if significant)
     subplot(3,2,1)
     imagesc(A_Rvalue.*(m.A_pval<o.threshold)); ylabel('Effect on y(t)'); xlabel('Cause y(t-1)');
@@ -165,7 +223,10 @@ else
 
     if o.duration, subplot(3,2,5), else subplot(3,1,3), end
     imagesc((1:size(m.B,1))/o.fs,1:Dy*Dx,reshape(m.B,nb,Dy*Dx)'); ylabel('Effect on y(t)'); 
-    clim([-1 1]*max(abs(m.B(:)))); colorbar
+    if ~isempty(max(abs(m.B(:))))
+        clim([-1 1]*max(abs(m.B(:))));
+    end
+    colorbar
     hold on; for i=1:Dx-1, plot([1 size(m.B,1)]/o.fs,[Dy Dy]*i+0.5,'k'); end; hold off
     if o.fs==1, xlabel('... from x(t), lag (samples)'); else xlabel('... from x(t), lag (seconds)'); end
     title('MA filter B')

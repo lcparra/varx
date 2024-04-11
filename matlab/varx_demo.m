@@ -11,7 +11,7 @@ model = varx(y,na,x,nb,lambda);
 yest = varx_simulate(model.B,model.A,x,y);
 
 figure(1); show_prediction(x,y,yest);
-figure(2); varx_display(model,xname=xname,yname=yname,IR_duration=nb);
+figure(2); varx_display(model,xname=xname,yname=yname,duration=nb,plottype='Graph');
 
 
 %% generate a data with known VARX model and compare varx result with matlab's varm estimate
@@ -51,7 +51,7 @@ figure(4); show_prediction(x,y,yest);
 figure(2); clf
 for t=1:na, for i=1:ydim, for j=1:ydim, AR{i,j}(t) = EstMdl.AR{t}(i,j); end; end; end;
 plot(A(:),model.A(:),'.'); hold on;
-plot(A(:),stack([AR{:}]),'.');
+plot(A(:),[AR{:}],'.');
 plot(B(:),model.B(:),'x')
 plot(B(1,:),EstMdl.Beta(:),'x')
 plot([-1 1],[-1 1]); hold off
@@ -111,7 +111,7 @@ for nt = 1:length(T)
     drawnow
 end
 
-%saveas(gcf,'figures/effect_of_regularization.png')
+%saveas(gcf,'../figures/effect_of_regularization.png')
 
 
 %% try repeating this 1000 times and see if the pvalues are correct
@@ -228,9 +228,9 @@ xlabel('lag (samples)')
 ylabel('MA filter B')
 haxis(3)=subplot(1,3,3); plot(base); 
 xlabel('lag (samples)'); ylabel('basis functions')
-sublabel(haxis,-5,-40);
+% sublabel(haxis,-5,-40);
 
-%saveas(gcf,'figures/effect_of_basis.png')
+%saveas(gcf,'../figures/effect_of_basis.png')
 
 %% demo modeling just the AR part
 clear all
@@ -244,7 +244,7 @@ x=randn(200,xdim); % no external input
 model = varx(y,na);
 model.A_pval
 
-figure(3); varx_display(model,yname={'y1','y2'},duration=20);
+figure(3); varx_display(model,yname={'y1','y2'},duration=20,plottype='Graph');
 
 
 figure(5); clf
@@ -283,7 +283,7 @@ model.A_pval,model.B_pval
 
 [yest,e] = varx_simulate(model.B,model.A,x,y);
 
-figure(3); varx_display(model,yname={'y1','y2'},xname={'x1','x2'},duration=20);
+figure(3); varx_display(model,yname={'y1','y2'},xname={'x1','x2'},duration=20,plottype='Graph');
 figure(4); show_prediction(x,y,yest);
 
 figure(5); clf
