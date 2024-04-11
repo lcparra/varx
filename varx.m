@@ -28,7 +28,8 @@ function m = varx(Y,na,X,nb,lambda)
 %
 % A_Deviance, B_Deviance ,T are Deviance and number of sample used in the
 % estimation of p-values, and Deviance/T can serve as a measure of effect
-% size, and can be used to compute R-square: R2 = 1 - exp(-Devinace/T)
+% size, and can be used to compute generalized R-square: R2 = 1 -
+% exp(-Devinace/T).
 %
 % varx(Y,na,X,base,lambda) If base is not a scalar, it is assumed that it
 % represent basis functions for filters B of size [filter length, number of
@@ -139,9 +140,9 @@ my_toc('time to fit VARX model',0.5)
 m.A  = permute(reshape(AB(1:ydim*na,    :),na,ydim,ydim),[1 3 2]);
 m.B = permute(reshape(AB(1+ydim*na:end,:),params(end),xdim,ydim),[1 3 2]);
 
-% if we used a base, return both base coefficients and filters B
+% if we used a base, return filters B with base applied
+m.B_coeff = m.B;
 if ~isempty(m.base)
-    m.B_coeff = m.B; 
     m.B = tensorprod(m.base,m.B_coeff,2,1);
 end
 
