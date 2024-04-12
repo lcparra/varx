@@ -1,101 +1,7 @@
 import numpy as np
 from scipy.linalg import toeplitz
-from scipy.signal import lfilter
-
-def varx(Y, na, X=None, nb=0, lambda_=0):
-    # If X is not provided or nb is 0, set X to None and nb to 0
-    if X is None or nb == 0:
-        X = None
-        nb = 0
-
-    # Make Y and X into lists if they are not already, to handle multiple data records
-    if not isinstance(Y, list):
-        Y = [Y]
-    if not isinstance(X, list):
-        X = [X]
-
-    # Get dimensions
-    ydim = Y[0].shape[1]
-    xdim = X[0].shape[1] if X[0] is not None else 0
-
-    # Initialize basis functions
-    if isinstance(nb, list) or isinstance(nb, np.ndarray):
-        base = [np.eye(na) for _ in range(ydim)]
-        for _ in range(xdim):
-            base.append(nb)
-        nb, bparams = nb.shape[0], nb.shape[1]
-    else:
-        base = [None] * (ydim + xdim)
-        bparams = nb
-
-    lags = np.ones((ydim, 1)) * na
-    params = lags.copy()
-
-    if nb:
-        lags = np.vstack((lags, np.ones((xdim, 1)) * nb))
-        params = np.vstack((params, np.ones((xdim, 1)) * bparams))
-
-    # Initialize correlation matrices
-    Rxx = np.zeros((na * (ydim + xdim), na * (ydim + xdim)))
-    Rxy = np.zeros((na * (ydim + xdim), ydim))
-    ryy = np.zeros(ydim)
-    T = 0
-
-    for i in range(len(Y)):
-        x = Y[i][:-1]
-        y = Y[i][1:]
-
-        if nb:
-            x = np.hstack((x, X[i][1:])) if X[i] is not None else x
-
-        # Compute auto and cross correlations
-        Rxx_, Rxy_, ryy_, T_ = myxcorr(x, y, lags)
-        Rxx += Rxx_
-        Rxy += Rxy_
-        ryy += ryy_
-        T += T_
-
-    # Regularization
-    gamma = lambda_ / np.sqrt(T - np.sum(lags))
-    Gamma = gamma * np.diag(np.diag(Rxx))
-
-    # Fit model
-    AB, s2, Bias = fit_model(Rxx, Rxy, ryy, Gamma, base)
-
-    # Reshape and store filter values
-    A = np.transpose(np.reshape(AB[:ydim * na], (na, ydim, ydim)), (0, 2, 1))
-    B = np.transpose(np.reshape(AB[ydim * na:], (params[-1], xdim, ydim)), (0, 2, 1))
-
-    # Apply basis functions if available
-    B_coeff = B.copy()
-    if base[0] is not None:
-        B = tensorprod(base, B_coeff, 2, 1)
-
-    # Granger Causal test
-    Deviance = np.zeros((na + nb, xdim))
-    pval = np.zeros((na + nb, xdim))
-    for i in range(xdim, 0, -1):
-        ii = np.delete(np.arange(np.sum(lags)), np.arange((i - 1) * nb, i * nb))
-        AB_r, s2_r, Bias_r = fit_model(Rxx[ii][:, ii], Rxy[ii], ryy, Gamma, base[:i - 1] + base[i:])
-        df = T - np.sum(params)
-        Deviance[:, i - 1] = df * np.log(s2_r / s2) - T * Bias_r + T * Bias
-        pval[:, i - 1] = 1 - chi2.cdf(Deviance[:, i - 1], params.flatten())
-
-    # Store additional outputs
-    model = {
-        "A": A,
-        "B": B,
-        "B_coeff": B_coeff,
-        "A_pval": pval[:, :ydim],
-        "B_pval": pval[:, ydim:],
-        "A_Deviance": Deviance[:, :ydim],
-        "B_Deviance": Deviance[:, ydim:],
-        "T": T
-    }
-
-    return model
-
-
+from scipy.signal import lfilter, lfilter_zi
+# MYXCORR
 def myxcorr(x,y,lags):
     '''
     Computes auto- and corr-correlation matrices Rxx, Rxy and ryy defined as
@@ -148,15 +54,18 @@ def myxcorr(x,y,lags):
     if lags is None:
         lags = x.shape[0] - 1 -1
     else:
-        lags = lags*np.ones((1,x.shape[1]))
+        lags = lags*np.ones((x.shape[1],1))
     
     # Compute correlations up to largest possible lag
     Q = int(np.max(lags))
     
     # Find valid samples without NaN in all rows of Y and Q history of all X rows
-    z = np.empty((Q-1))
-    z[:] = np.nan
-    valid = ~np.isnan(lfilter(np.ones((Q)),1,np.sum(x,1)) + np.sum(y,1))
+    # z = np.empty((Q-1))
+    # z[:] = np.nan
+    z1 = lfilter_zi(np.ones((Q)),1)
+    z1 = z1*np.nan
+    filtered, _ = lfilter(np.ones((Q)),1,np.sum(x,1),zi = z1)
+    valid = ~np.isnan(filtered + np.sum(y,1))
     
     # number of valid samples
     T = sum(valid)
@@ -168,9 +77,9 @@ def myxcorr(x,y,lags):
     # #compute correlations with block-Toeplitz matrices
     X = np.zeros((x.shape[0], int(np.sum(lags))))
     for i in range(x.shape[1]-1, -1, -1):
-        startidx = i*int(lags[0,i])
-        endidx = int(startidx + (lags[0,i]))
-        toeplitz_matrix = toeplitz(x[:, i], np.concatenate(([x[0, i]], np.zeros(int(lags[0, i])-1))))
+        startidx = int(np.sum(lags[0:i]))
+        endidx = startidx + int(lags[i,0])
+        toeplitz_matrix = toeplitz(x[:, i], np.concatenate(([x[0, i]], np.zeros(int(lags[i, 0])-1))))
         X[:, startidx:endidx] = toeplitz_matrix
 
     Rxx = X[valid, :].T @ X[valid, :]
@@ -188,37 +97,227 @@ def myxcorr(x,y,lags):
     y = sio.loadmat('testdata/y.mat')['y']
     L = 10
     [Rxx,Rxy,ryy,T] = myxcorr(x,y,L)
+
+
+# BASIS
+import numpy as np
+from scipy.signal import windows
+def basis(T,n,type):
+    '''
+    b=basis(T,n,type) makes basis functions of type 'hanning' or 'normal'. T
+    is the length of the basis. n is how many to use. Typically T>>n, if the
+    goal is to represent a filter with fewer parameters. Omit output argument
+    to see how the basis functions look.
+    '''
     
+    r = T / n
+    b = np.zeros((T, n))
 
+    if type == 'hanning':
+        for i in range(n):
+            b[:int(round(r*4)), i] = windows.hann(int(round(r*4)))
+        b = np.flipud(b[int(np.floor(r)):T, :])
 
+    elif type == 'normal':
+        t = np.arange(1, T+1)
+        for i in range(n):
+            b[:, i] = np.exp(-np.power(t - (i * r), 2) / np.power(r, 2))
 
-
-def fit_model(Rxx, Rxy, ryy, gamma, base):
-    if base[0] is not None:
-        B = np.block_diag(*base)
-        Rxx = np.matmul(np.matmul(B.T, Rxx), B)
-        Rxy = np.matmul(B.T, Rxy)
-
-    Gamma = gamma * np.diag(np.diag(Rxx))
-    h = np.linalg.solve(Rxx + Gamma, Rxy)
-    Rxy_est = np.matmul(Rxx, h)
-    s2 = np.mean(np.multiply(h, Rxy_est) - 2 * np.multiply(h, Rxy) + ryy, axis=0)
-
-    if np.any(s2 < 0):
-        print("Square error of linear regression can not be negative. Please debug ...")
-        # Handle error appropriately
-
-    if gamma > 0:
-        Bias = np.sum(np.multiply(Rxy - Rxy_est, np.linalg.solve(Rxx, Rxy - Rxy_est)), axis=0) / s2 / 2
     else:
-        Bias = 0
+        b = np.eye(T)
+        
+    return b
+
+from scipy.linalg import block_diag
+from scipy.linalg import solve
+# FIT_MODEL
+def fit_model(Rxx, Rxy, ryy, gamma, base):
+    # apply basis functions, if available 
+    if base[0] is not None:
+        B = block_diag(*base)
+        Rxx = B.T @ Rxx @ B
+        Rxy = B.T @ Rxy
+        
+    # Regularizer
+    Gamma = gamma * np.diag(np.diag(Rxx)) # Tikhonov, scaled for all variables to be regularized equally, regardless of magnitude
+
+    # Least squares estimate with regularization
+    h = solve(Rxx + Gamma, Rxy)
+
+    # mean error square
+    Rxyest = Rxx @ h
+    s2 = (np.sum(h * Rxyest, 0) - 2 * np.sum(h * Rxy,0) + ryy).T
+
+    # Bias term for ridge regression bias -- see Babadi derivation 
+    Bias = np.sum((Rxy - Rxyest) * solve(Rxx, Rxy - Rxyest),0).T / s2 / 2 if gamma > 0 else 0
 
     return h, s2, Bias
 
+# VARX
+import numpy as np
+from scipy.stats import chi2
+def varx(Y, na, X, nb, gamma):
+    '''
+    model = varx(Y,na,X,nb,gamma) fits an vectorial ARX model to the MIMO
+    system output Y with input X by minimizing the equation error e(t), i.e.
+    equation error model:
 
-def tensorprod(base, B_coeff, axis1, axis2):
-    B = np.zeros((B_coeff.shape[0], B_coeff.shape[2], base[0].shape[0]))
-    for i in range(B_coeff.shape[0]):
-        B[i] = np.matmul(base[i].T, B_coeff[i])
+    Y(t) = A*Y(t-1) + B*X(t) + e(t)
 
-    return B
+    where * represents a convolution.  The model contains the following
+    variables, stored as stucture elements:
+
+    model = A, B, A_pval, B_pval, A_Deviance,B_Deviance, T
+
+    A and B are filter model parameters found with conventional least squares
+    with ridge regression. They are stored as tensor of size [na,ydim,ydim]
+    and [nb,ydim,xdim] respectively. na and nb are the legth of the filters.
+    gamma is the regularization for the ridge (shrinkage) regularization and
+    defaults to 0 and should not be selected larger than 1. Note that x(t)
+    represents the history including the current sample in the input. Thus,
+    we are allowing for instant effects. This is the norm in the signal
+    processing literature but no in the Granger Causality VAR models,
+    although there is no theoretical reason not to include instant effect in
+    the external input. To avoid instant effects, the user can simply delay
+    the input by one sample.
+
+    A_pval,B_pval are  P-values for each channel (for all delays together)
+    using the Deviance formalism.
+
+    A_Deviance, B_Deviance ,T are Deviance and number of sample used in the
+    estimation of p-values, and Deviance/T can serve as a measure of effect
+    size, and can be used to compute generalized R-square: R2 = 1 -
+    exp(-Devinace/T).
+
+    varx(Y,na,X,base,gamma) If base is not a scalar, it is assumed that it
+    represent basis functions for filters B of size [filter length, number of
+    basis functions]. B will have size [size(base,2),ydim,xdim], i.e. as many
+    parameters for each path as basis functions. The actual filters can be
+    obtained as tensorprod(base,B,2,1);
+
+    varx(Y,na,X,nb,gamma) If Y is a cell array, then the model is fit on all
+    data records in X and Y. All elements in the cell arrays X and Y have to
+    have the same xdim and ydim, but may have different numer of rows (time
+    samples).
+
+    varx(Y,na) Only fitst the AR portion. To provide gamma, set set x=[] and
+    nb=0.
+
+    If the intention is to only fit a MA model, then the Granger formalism
+    requires at least an AR portion for each output channel, without the
+    interaction between ouput channels. If that is the intention, then one
+    should call this function for each output channel separatelly, e.g.
+    varx(y(:,i),na,x,nb)
+
+    model can be used by varx_display(model) for display. 
+
+    (c) (matlab) July 10, 2023 Lucas C Parra
+        04/11/2024, last version, Lucas Parra
+    (c) (python) April 12, 2024, Aimar Silvan, based on matlab version 04/11/2024
+
+    '''
+    # If not simulating eXternal MA channel then xdim=0
+    if X is None or np.all(nb == 0):
+        X = None
+        nb = 0
+        
+    # Make Y and X into lists if they are not already, to handle multiple data records
+    if not isinstance(Y, list):
+        Y = [Y]
+    if not isinstance(X, list):
+        X = [X]
+    
+    # Get dimensions
+    ydim = Y[0].shape[1]
+    xdim = X[0].shape[1] if X[0] is not None else 0
+        
+    # Initialize basis functions
+    
+    if isinstance(nb, np.ndarray):
+        m = {'base': nb}  # save for output
+        # internally, base variable is a list with one base for each dimension
+        base = [np.eye(na) for _ in range(ydim)]
+        base.extend([nb for _ in range(xdim)])
+        nb, bparams = nb.shape  # lags according and number of parameters according to basis
+    else:
+        m = {'base': None}  # save for output
+        base = [None for _ in range(ydim + xdim)]  # empty bases
+        bparams = nb  # number of parameters same as number of lags
+    
+    # number of lags and number of parameters equal ...
+    lags = np.ones((ydim, 1)) * na
+    params = lags.copy()
+    # ... unless using basis function and need only including when modeling MA of external input
+    if nb:
+        lags = np.concatenate((lags, np.ones((xdim, 1)) * nb))
+        params = np.concatenate((params, np.ones((xdim, 1)) * bparams))
+
+    # calculate correlations
+    Rxx = 0
+    Rxy = 0
+    ryy = 0
+    T = 0
+    for i in range(len(Y)):
+        # Set preceding output and input both as input to the LS problem
+        x = Y[i][:-1, :]
+        y = Y[i][1:, :]
+        
+        # if modeling also the MA of eXternal input
+        if nb:
+            x = np.concatenate((x, X[i][1:, :]), axis=1)
+
+        # Compute auto and cross correlations
+        Rxx_, Rxy_, ryy_, T_ = myxcorr(x, y, lags)
+
+        # accumulate over all data records
+        Rxx += Rxx_
+        Rxy += Rxy_
+        ryy += ryy_
+        T += T_
+        
+    if gamma is None:
+        gamma = 0
+    else:
+        gamma = gamma/np.sqrt(T-np.sum(lags)) # regularization decreasing with degrees of freedom
+        
+    AB, s2, Bias = fit_model(Rxx, Rxy, ryy, gamma, base)
+    
+    
+    A = np.transpose(AB[0:ydim*na, :].reshape(na, ydim, ydim, order='F'), (0, 2, 1)) # F so it follows Fortran-style order (consistent with matlab)
+    B = np.squeeze(np.transpose(AB[ydim*na:].reshape(int(params[-1,0]), xdim, ydim, order='F'), (0, 2 ,1)))
+
+    m['A'] = A
+    m['B'] = B
+    
+    # if we used a base, return filters B with base applied
+    m['B_coeff'] = m['B']
+    if base[0] is not None:
+        m['B'] = np.tensordot(m['base'], m['B_coeff'], axes=([1], [0]))
+    
+    # Granger Causal test for all inputs (external and recurrent)
+    xdim = x.shape[1]
+    Deviance = np.zeros((2, xdim))
+    pval = np.zeros((2, xdim))
+    for i in range(xdim-1, -1, -1):
+        ii = np.arange(0, np.sum(lags)).astype(int)
+        startidx = int(np.sum(lags[0:i]))
+        endidx = startidx + int(lags[i,0])
+        ii = np.delete(ii, np.arange(startidx, endidx).astype(int))
+        # , np.sum(lags[0:i])+lags[i]))
+        
+        _, s2r, Biasr = fit_model(Rxx[ii, :][:, ii], Rxy[ii, :], ryy, gamma, [base[j] for j in range(xdim) if j != i])
+        
+        df = T - np.sum(params)  # degrees of freedom of the full model
+        
+        Deviance[:, i] = df * np.log(s2r / s2) - T * Biasr + T * Bias  # not the exact formula, but I calibrated and seems to work well for small T
+        
+        pval[:, i] = 1 - chi2.cdf(Deviance[:, i], params[i])
+    
+    # store additional outputs in model dictionary
+    m['A_pval'] = pval[:, :ydim]
+    m['B_pval'] = pval[:, ydim:]
+    m['A_Deviance'] = Deviance[:, :ydim]
+    m['B_Deviance'] = Deviance[:, ydim:]
+    m['T'] = T
+    
+    return m
