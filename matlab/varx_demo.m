@@ -20,16 +20,15 @@ clear all
 % define VARX model. Where there are all zeros, that path does not
 % contribute
 A(:,:,1) = [[0.3 -0.5 0]',[0 0 0]']; A(:,:,2) = [[-.5 0.4 0]',[0.5 -.7 0]'];
-B = [[2 0]',[0 0]']; % single input. the varm estimate only works for zero delay
+B = [[1 0]',[0 0]']; % single input. the varm estimate only works for zero delay
 [nb,ydim,xdim] = size(B);
 [na,ydim,ydim] = size(A);
 
 % simulate 
-figure(1); clf
 lambda = 0.0;
 T = 1000;
-x = randn(T,xdim)+2;
-[y,e] = varx_simulate(B,A,x,1); y=y+2; 
+x = randn(T,xdim);
+[y,e] = varx_simulate(B,A,x,1);  
 
 % estimate VARX model
 model = varx(y,na,x,nb,lambda);
@@ -44,7 +43,8 @@ Mdl = varm(ydim,na);
 EstMdl = estimate(Mdl,y,'X',x);
 
 % some displays
-figure(3); varx_display(model);
+figure(3); varx_display(model,plottype='matrix',xname={'x1'},yname={'y1','y2'});
+saveas(gca,'../figures/known-model-efficacy.png')
 figure(4); show_prediction(x,y,yest);
 
 % compare estimate to truth
@@ -55,9 +55,10 @@ plot(A(:),[AR{:}],'.');
 plot(B(:),model.B(:),'x')
 plot(B(1,:),EstMdl.Beta(:),'x')
 plot([-1 1],[-1 1]); hold off
-ylim([-1.5 1.5]); %axis equal; axis tight
-legend('our AR estimate','matlab AR estimte','our MA estimate','matlab MA estimte','Location','NorthWest')
+axis equal; axis tight
+legend('our AR estimate','matlab AR estimte','our MA estimate','matlab MA estimte','Location','eastoutside')
 xlabel('true value'); ylabel('estimate')
+saveas(gca,'../figures/known-model-true-vs-estimate.png')
 
 %% determine the effect of regularization
 clear A B
@@ -133,28 +134,34 @@ mean(A_pval<0.05,3)
 mean(B_pval<0.05,3)
 
 %% now do it with some larger models
-clear all
-na = 2; ydim=10;
-nb = 2; xdim=1;
-for i=1:ydim, 
-    for j=1:ydim, A(:,i,j) = 0.1*randn(na,1); end; 
-    for j=1:xdim, B(:,i,j) = randn(nb,1); end; 
+tiledlayout(1,6);
+na = 2; nb = 2; xdim=1;
+for ydim=[6 60];
+    clear A B
+    for i=1:ydim,
+        for j=1:ydim, A(:,i,j) = 0.05*sign(randn(na,1)); end;
+        for j=1:xdim, B(:,i,j) = randn(nb,1); end;
+    end
+    % set two of the paths to zero, to see if we correctly identify them at alpha<0.05
+    A(:,2,2)=0;
+    B(:,5,1)=0;
+    lambda=0;
+    clear A_pval B_pval
+    for n=1000:-1:1
+        x = randn(1000,xdim);
+        y = varx_simulate(B,A,x,1);
+        model = varx(y,na,x,nb,lambda);
+        A_pval(:,:,n)=model.A_pval; B_pval(:,:,n)=model.B_pval;
+    end
+    nexttile([1 2]); imagesc(mean(A_pval<0.05,3)); axis equal; axis tight; clim([0 0.1]);
+    title('A')
+    h = colorbar; ylabel(h,'false discovery rate at p<0.05')
+    nexttile([1 1]); imagesc(mean(B_pval<0.05,3)); axis equal; axis tight; clim([0 0.1]);
+    title('B'); 
+    drawnow
 end
-% set two of the paths to zero, to see if we correctly identify them at alpha<0.05
-A(:,2,end)=0;
-B(:,1,end)=0;
-lambda=0.1;
-clear A_pval B_pval
-for n=1000:-1:1
-    x = randn(2000,xdim);
-    y = varx_simulate(B,A,x,1);
-    model = varx(y,na,x,nb,lambda);
-    A_pval(:,:,n)=model.A_pval; B_pval(:,:,n)=model.B_pval;
 
-end
-mean(A_pval<0.05,3)
-mean(B_pval<0.05,3)'
-
+saveas(gcf,'../figures/false_alarm_ydim-6-60.png')
 
 %% now try using basis functions
 clear A B
@@ -200,12 +207,27 @@ for n=5000:-1:1
     model_b = varx(y,na,x,base); 
     A_pval_b(:,:,n)=model_b.A_pval; B_pval_b(:,:,n)=model_b.B_pval;
     % estimate all parameters
-    model = varx(y,na,x,nb);
+    model = varx(y,na,x,60);
     A_pval(:,:,n)=model.A_pval; B_pval(:,:,n)=model.B_pval;
 end
+
 %%
 clf
-haxis(1)=subplot(1,3,1);
+haxis(1)=subplot(1,3,1); plot(base); 
+xlabel('lag (samples)'); ylabel('basis functions')
+
+haxis(2)=subplot(1,3,2);
+for i=1:2
+    plot(model.B(:,i),'b'); hold on;
+    plot(model_b.B(:,i),'r');
+    plot(B(:,i),'g'); 
+end
+legend('free estimate','basis estimate','true filter')
+hold off
+xlabel('lag (samples)')
+ylabel('filter B')
+
+haxis(3)=subplot(1,3,3);
 FDrate(1,1) = mean(A_pval(2,1,:)<0.05,3);
 FDrate(1,2) = mean(B_pval(2,1,:)<0.05,3);
 FDrate(2,1) = mean(A_pval_b(2,1,:)<0.05,3);
@@ -213,24 +235,12 @@ FDrate(2,2) = mean(B_pval_b(2,1,:)<0.05,3);
 bar(FDrate); hold on
 ylabel('False discovery rate'); ylim([0 0.07])
 ax=axis; plot(ax(1:2),[0.05 0.05],':k'); hold off
-legend('AR link','MA link','\alpha=0.05','location','northwest')
+legend('A link','B link','\alpha=0.05','location','northwest')
 set(gca,'XTickLabel',{'free','basis'})
 xlabel('Estimate')
-haxis(2)=subplot(1,3,2);
-for i=1:2
-    plot(model.B(:,i),'b'); hold on;
-    plot(model_b.B(:,i),'r');
-    plot(B(:,i),'g'); 
-end
-legend('free estimate','basis estimate','true MA filter')
-hold off
-xlabel('lag (samples)')
-ylabel('MA filter B')
-haxis(3)=subplot(1,3,3); plot(base); 
-xlabel('lag (samples)'); ylabel('basis functions')
-% sublabel(haxis,-5,-40);
 
-%saveas(gcf,'../figures/effect_of_basis.png')
+sublabel(haxis,-5,-35);
+saveas(gcf,'../figures/effect_of_basis.png')
 
 %% demo modeling just the AR part
 clear all
