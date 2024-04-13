@@ -12,38 +12,38 @@ function [Graph,G_plot]=varx_display(m,o)
 % options are name=value optional arguments: yname,xname,duration,fs,threshold, plottype
 %
 % yname,xname: cell arrays that specify the names of input x and output
-%              y in the model. If they are provided, and plottype 'Graph' is selected,
-%              then model structure is displayed as a circular graph,
-%              and Graph and G_plot can be used to plot with:
+%    y in the model. If they are provided, and plottype 'Graph' is
+%    selected, then model structure is displayed as a circular graph, and
+%    Graph and G_plot can be used to plot with:
 %
 % plot(Graph,'LineWidth',G_plot.width,'XData',G_plot.xdata,'YData',G_plot.ydata,...
 %            'EdgeColor',G_plot.color,'NodeColor',G_plot.nodecolor);
 %
 % plottype: if yname is not provided, plottype defaults to 'Default'
-%           'Default': everything is shown as matrix.
-%                      Suggest to use this when there are a lot of
-%                      variables in the model.
-%           'Matrix': matrices with input x and output y names
-%           'Graph': digraph visualization, Efficacy matrices with input x
-%                    and output y names, and impulse responses, also
-%                    outputs digraph structures
+%    'Default': everything is shown as matrix. Suggest to use this
+%           when there are a lot of variables in the model. 
+%    'Matrix':
+%           matrices with input x and output y names. 
+%    'Graph': digraph visualization, Efficacy matrices with input x
+%           and output y names, and impulse responses, also
+%           outputs digraph structures
 %
 % duration: a scalar indicating for how long to compute and display the
-%           impulse respones (IR). The IR are from every variable to every
-%           other variable. If it is omited then the IR is not displayed.
+%   impulse respones (IR). The IR are from every variable to every
+%   other variable. If it is omited then the IR is not displayed.
 %
 % fs: the sampling rate. If given, then filters and impulse response are
-%     displayed in seconds.
+%   displayed in seconds.
 %
-% threshold: the cutoff pvalue to display links. Only links (effect
-%            size) below this cutoff will be displayed. The effect size is the R-value
-%            (see varx.m for detail).
+% threshold: Only links with pvalue below this threshold will be displayed
+%    (defaults to 0.001)
 
 % March 11, 2024, Lucas Parra
 % March 16, 2024, changed to display R as effect size. added threshold as argument, and added options arguments
 % April 1, 2024, Aimar Silvan, added display plottype: 'Matrix', 'Graph',
 %                              'Default', now also plots R-value matrices
 % April 11, 2024, Lucas, fix impulse response display in 'Default' option
+% April 13, 2024, Lucas, make more space for Graph, and change a few other visuals 
 
 % define arguments with defaults for the options variables o
 arguments
@@ -78,7 +78,8 @@ if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
 
     % set graph visuals
     h=plot(digraph(zeros(Dy)),'Layout','circle');
-    G_plot.ydata=[get(h,'YData') linspace(.8,-0.8,Dx)];
+    x = linspace(.8,-0.8,Dx); x=x-mean(x);
+    G_plot.ydata=[get(h,'YData') x];
     G_plot.xdata=[get(h,'XData') -2*ones(1,Dx)];
     G_plot.nodecolor = [repmat([0 0 0.75],Dy,1); repmat([0.75 0 0],Dx,1)];
 
@@ -151,20 +152,22 @@ if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
             if o.fs==1, xlabel('samples'); else, xlabel('seconds'); end
         end
     else  % if na<=1 better show filters as a matrix
-        subplot(4,2,5);
+        if Dx>0, subplot(4,2,5); else subplot(4,1,3); end;
         A = m.A; % for i=1:Dy, A(:,i,i)=0; end
         imagesc((1:na*Dy)/o.fs,1:Dy,reshape(permute(A,[2 3 1]),Dy,Dy*na));
         clim([-1 1]*max(abs(A(:))));   colorbar
         ylabel('Effect on y(t)');
         title('Filter A')
 
-        nexttile([1 Dx]); % subplot(4,2,6);
-        imagesc((1:nb)/o.fs,1:Dy*Dx,reshape(m.B,nb,Dy*Dx)'); ylabel('Effect on y(t)');
-        if ~isempty(max(abs(m.B(:))))
-            clim([-1 1]*max(abs(m.B(:))));
+        if Dx>0
+            subplot(4,2,6);
+            imagesc((1:nb)/o.fs,1:Dy*Dx,reshape(m.B,nb,Dy*Dx)'); ylabel('Effect on y(t)');
+            if ~isempty(max(abs(m.B(:))))
+                clim([-1 1]*max(abs(m.B(:))));
+            end
+            hold on; for i=1:Dx-1, plot([1 size(m.B,1)]/o.fs,[Dy Dy]*i+0.5,'k'); end; hold off
+            title('Filter B')
         end
-        hold on; for i=1:Dx-1, plot([1 size(m.B,1)]/o.fs,[Dy Dy]*i+0.5,'k'); end; hold off
-        title('Filter B')
 
     end
 
