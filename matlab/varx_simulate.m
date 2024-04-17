@@ -1,7 +1,7 @@
 function [y,e] = varx_simulate(B,A,x,arg4)
 
-% y = varx_simulate(B,A,x) Filters the input x through a VARX system with
-% no noise. This is equivalent to a vectorial ARMA filter.
+% y = varx_simulate(B,A,x) Filters the vector input x through a VARX system
+% with no noise. This is equivalent to a vectorial ARMA filter.
 %
 % y(t) = A*y(t-1) + B*x(t) 
 % 
@@ -11,7 +11,8 @@ function [y,e] = varx_simulate(B,A,x,arg4)
 % current input x(t) does not affect the current output y(t). To implement
 % instant effects, simply advance the input by one sample. x is the input
 % of size [T,xdim] and y has size [T,ydim]. This option can be used to
-% compute the impulse response of the VARX model.
+% compute the impulse response of the VARX model, my calling it separatelly
+% for each xdim set to an impulse.
 %
 % [y,e] = varx_simulate(B,A,x,se) if the third argument is a scalar, then
 % computes output y(t) of a VARX system with external input x(t) and
@@ -27,10 +28,10 @@ function [y,e] = varx_simulate(B,A,x,arg4)
 % yest(t) = A*y(t-1) + B*x(t); 
 % e(t) = yest(t) - y(t)
 %
-% If the intention is to simulate an AR model only, then the set input
+% If the intention is to simulate an AR model only, then set the input
 % x=zeros(T,0); B=zeros(0,ydim,0); with xdim=0 and nb=0.
 %
-% See varx.m for how to estimate A and B from x,d data.
+% See varx.m for how to estimate A and B from x,y data.
 
 % (c) 08/01/2023 Lucas C Parra
 %     08/02/2023 added zero padding at the start

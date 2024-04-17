@@ -24,7 +24,7 @@ function [Graph,G_plot]=varx_display(m,o)
 %           when there are a lot of variables in the model. 
 %    'Matrix':
 %           matrices with input x and output y names. 
-%    'Graph': digraph visualization, Efficacy matrices with input x
+%    'Graph': digraph visualization, Effect size matrices with input x
 %           and output y names, and impulse responses, also
 %           outputs digraph structures
 %
@@ -113,7 +113,7 @@ if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
     clim_max = max(max(A_Rvalue-diag(diag(A_Rvalue)))); % clip the diagonal values which are much larger
     clim_max = max([clim_max; B_Rvalue(:)]); % use the same clim for A and B
     if clim_max>0, clim([0 clim_max]); end    
-    title('A Efficacy'); axis equal; axis tight; % xlabel(colorbar,'R');
+    title('A Effect size'); axis equal; axis tight; % xlabel(colorbar,'R');
     set(gca,"YTick",[1:length(o.yname)]); set(gca,"YTickLabel",node_name(1:length(o.yname)),"YTickLabelRotation",45)
     set(gca,"XTick",[1:length(o.yname)]); set(gca,"XTickLabel",node_name(1:length(o.yname)),"XTickLabelRotation",45)
 
@@ -123,7 +123,7 @@ if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
         imagesc(B_Rvalue.*(m.B_pval<o.threshold)); ylabel('Effect on y(t)');
         if clim_max>0, clim([0 clim_max]); end
         xlabel('Cause x(t)'); axis equal; axis tight;set(gca,'xticklabel',{})
-        title('B Efficacy');  axis tight; 
+        title('B Effect size');  axis tight; 
         set(gca,"YTick",[1:size(A_Rvalue,1)]); set(gca,"YTickLabel",node_name(1:size(A_Rvalue,2)),"YTickLabelRotation",45)
         set(gca,"XTick",[1:size(B_Rvalue,1)]); set(gca,"XTickLabel",node_name(end-size(B_Rvalue,2)+1:end),"XTickLabelRotation",45)
     end
@@ -206,7 +206,7 @@ elseif ~isempty(o.yname) && strcmpi(o.plottype, 'Matrix')
     t = tiledlayout(1,2);
     nexttile
     imagesc(A_Rvalue.*(m.A_pval<o.threshold)); ylabel('Effect on y(t)'); xlabel('Cause y(t-1)');
-    title('A Efficacy'); axis equal; axis tight; 
+    title('A Effect size'); axis equal; axis tight; 
     clim_max = max(max(A_Rvalue-diag(diag(A_Rvalue)))); % clip the diagonal values which are much larger
     clim_max = max([clim_max; B_Rvalue(:)]); % use the same clim for A and B
     if clim_max>0, clim([0 clim_max]); end
@@ -217,7 +217,7 @@ elseif ~isempty(o.yname) && strcmpi(o.plottype, 'Matrix')
         imagesc(B_Rvalue.*(m.B_pval<o.threshold)); ylabel('Effect on y(t)');
         if clim_max>0, clim([0 clim_max]); end
         xlabel('Cause x(t)'); axis equal; axis tight;set(gca,'xticklabel',{})
-        title('B Efficacy');  axis tight; xlabel(colorbar,'R');
+        title('B Effect size');  axis tight; xlabel(colorbar,'R');
         set(gca,"YTick",[1:size(A_Rvalue,1)]); set(gca,"YTickLabel",node_name(1:size(A_Rvalue,2)),"YTickLabelRotation",45)
         set(gca,"XTick",[1:size(B_Rvalue,1)]); set(gca,"XTickLabel",node_name(end-size(B_Rvalue,2)+1:end),"XTickLabelRotation",45)
     end
@@ -235,20 +235,22 @@ elseif isempty(o.yname) || strcmpi(o.plottype, 'Default')
     tiledlayout(rows,3)
     nexttile([1 2])
     imagesc(A_Rvalue.*(m.A_pval<o.threshold)); ylabel('Effect on y(t)'); xlabel('Cause y(t-1)');
-    title('A Efficacy'); axis equal; axis tight; xlabel(colorbar,'R');
+    title('A Effect size'); axis equal; axis tight; xlabel(colorbar,'R');
     clim([0 max(max(A_Rvalue-diag(diag(A_Rvalue))))]); % clip the diagonal values which are much larger
 
     nexttile
     imagesc(B_Rvalue.*(m.B_pval<o.threshold)); ylabel('Effect on y(t)');
     xlabel('Cause x(t)'); axis equal; axis tight;set(gca,'xticklabel',{})
-    title('B Efficacy');  axis tight; xlabel(colorbar,'R');
+    title('B Effect size');  axis tight; xlabel(colorbar,'R');
 
     % show filters as a matrix
     nexttile([1 3])
     A = m.A; % for i=1:Dy, A(:,i,i)=0; end
-    imagesc((1:na*Dy)/o.fs,1:Dy,reshape(permute(A,[2 3 1]),Dy,Dy*na));
+    imagesc(0.5:na+0.5,1:Dy,reshape(permute(A,[2 3 1]),Dy,Dy*na));
+    set(gca,'XTick',1:na)
     clim([-1 1]*max(abs(A(:))));   colorbar
     ylabel('Effect on y(t)');
+    xlabel('lag (samples)'); 
     title('Filter A')
 
     nexttile([1 3])

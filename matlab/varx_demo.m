@@ -44,7 +44,7 @@ EstMdl = estimate(Mdl,y,'X',x);
 
 % some displays
 figure(3); varx_display(model,plottype='matrix',xname={'x1'},yname={'y1','y2'});
-saveas(gca,'../figures/known-model-efficacy.png')
+exportgraphics(gcf,'../figures/known-model-efficacy.png', 'Resolution', 300)
 figure(4); show_prediction(x,y,yest);
 
 % compare estimate to truth
@@ -56,9 +56,9 @@ plot(B(:),model.B(:),'x')
 plot(B(1,:),EstMdl.Beta(:),'x')
 plot([-1 1],[-1 1]); hold off
 axis equal; axis tight
-legend('our AR estimate','matlab AR estimte','our MA estimate','matlab MA estimte','Location','eastoutside')
+legend('our {\bf A}','matlab {\bf A}','our {\bf B}','matlab {\bf B}','Location','eastoutside')
 xlabel('true value'); ylabel('estimate')
-saveas(gca,'../figures/known-model-true-vs-estimate.png')
+exportgraphics(gca,'../figures/known-model-true-vs-estimate.png', 'Resolution', 300)
 
 %% determine the effect of regularization
 clear A B
@@ -112,7 +112,7 @@ for nt = 1:length(T)
     drawnow
 end
 
-%saveas(gcf,'../figures/effect_of_regularization.png')
+exportgraphics(gcf,'../figures/effect_of_regularization.png','Resolution',300)
 
 
 %% try repeating this 1000 times and see if the pvalues are correct
@@ -161,7 +161,7 @@ for ydim=[6 60];
     drawnow
 end
 
-saveas(gcf,'../figures/false_alarm_ydim-6-60.png')
+exportgraphics(gcf,'../figures/false_alarm_ydim-6-60.png','Resolution',300)
 
 %% now try using basis functions
 clear A B

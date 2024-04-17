@@ -2,6 +2,6 @@ data/*
 versions/*
 references/*
 figures/*
-examples/*
 *.asv
+papers/*
 
