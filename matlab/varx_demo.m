@@ -386,7 +386,23 @@ plot([-1 1],[-1 1]); hold off
 xlabel('true value'); ylabel('estimate')
 sgtitle('Simulated VARX and estimation')
 
+%% Test what happens if innovation changes in power across repeats
+A(:,:,1) = [[0.3 -0.5 0]',[0 0 0]']; A(:,:,2) = [[-.5 0.4 0]',[0.5 -.7 0]'];
+B = [[0 0]',[1 0]']; % single input. the varm estimate only works for zero delay
+[nb,ydim,xdim] = size(B);
+[na,ydim,ydim] = size(A);
 
+% simulate 
+lambda = 0.0;
+T = 100000;
+clear x y
+x{1} = randn(T,xdim); y{1} = varx_simulate(B,A,x{1}*10,1);  
+x{2} = randn(T,xdim); y{2} = varx_simulate(B,A,x{2},10);  
+
+% estimate VARX model
+model = varx(y,na,x,nb,lambda);
+
+varx_display(model,plottype='graph',xname={'x1'},yname={'y1','y2'});
 
 
 % ----------------- result display function --------------------------

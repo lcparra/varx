@@ -16,9 +16,12 @@ videos = {...
     'The_Present_Rep_1.mat',...
     'The_Present_Rep_2.mat'};
 
-data_path = '../data/NS167/'; channels=[31:80];
-% data_path = '../data/NS135/'; channels = [117:140, 241:265];
-
+data_path = '../data/Example_patient/'; channels=[31:80];
+if ~exist(data_path)
+    disp('Download test data here: https://osf.io/vc25t/?view_only=0aa33fa3d1df4114a2d040b01397c9d1')
+    disp('unzip and place it here ../data/Example_patient/')
+    return
+end
 
 tic
 for vid=1:length(videos)
