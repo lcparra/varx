@@ -66,8 +66,8 @@ if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
     pval = [m.A_pval m.B_pval; ones(Dx,Dy+Dx)];
 
     % sqrt of Coeficient of variation, i.e. R-square=1-exp(-D/T)
-    Effect = [m.A_Deviance m.B_Deviance; zeros(Dx,Dy+Dx)]/m.T;
-    Rvalue = sqrt(1-exp(-Effect));
+    Effect = m.Effect;
+    Rvalue = m.Rvalue;
 
     %tiledlayout(4,Dx+Dy)%    subplot(2,3,1)
     %nexttile([2 floor((Dx+Dy)/2)])
@@ -103,8 +103,8 @@ if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
     % now plot the Graph
     plot(Graph,'LineWidth',G_plot.width,'XData',G_plot.xdata,'YData',G_plot.ydata,'EdgeColor',G_plot.color,'Nodecolor',G_plot.nodecolor);
     axis equal; axis off;
-    A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
-    B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
+    A_Rvalue = m.A_Rvalue;
+    B_Rvalue = m.B_Rvalue;
 
     % plot the coefficient of variation as a matrix (only if significant)
     A_Adj = Adj(1:length(o.yname),1:length(o.yname));
@@ -199,8 +199,8 @@ elseif ~isempty(o.yname) && strcmpi(o.plottype, 'Matrix')
 
     node_name = [o.yname(:)' o.xname(1:Dx)];
     % sqrt of Coeficient of variation, i.e. R-square
-    A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
-    B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
+    A_Rvalue = m.A_Rvalue;
+    B_Rvalue = m.B_Rvalue;
 
     % plot the coefficient of variation as a matrix (only if significant)
     t = tiledlayout(1,2);
@@ -228,8 +228,8 @@ elseif isempty(o.yname) || strcmpi(o.plottype, 'Default')
     if o.duration, rows=4; else rows=3; end
 
     % sqrt of Coeficient of variation, i.e. R-square
-    A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
-    B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
+    A_Rvalue = m.A_Rvalue;
+    B_Rvalue = m.B_Rvalue;
 
     % plot the coefficient of variation as a matrix (only if significant)
     tiledlayout(rows,3)

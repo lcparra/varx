@@ -320,4 +320,13 @@ def varx(Y, na, X, nb, gamma):
     m['B_Deviance'] = Deviance[:, ydim:]
     m['T'] = T
     
+    # Compute effect values and add to output
+    Dx = np.shape(m['B'])[2]
+    Dy = np.shape(m['A'])[2]
+    deviance = np.concatenate((m['A_Deviance'], m['B_Deviance']),axis = 1)
+    m['Effect'] = np.concatenate((deviance, np.zeros((Dx, Dy+Dx))), axis=0) / m['T']
+    m['Rvalue'] = np.sqrt(1 - np.exp(-m['Effect']))
+    m['A_Rvalue'] = np.sqrt(1 - np.exp(-m['A_Deviance'] / m['T']))
+    m['B_Rvalue'] = np.sqrt(1 - np.exp(-m['B_Deviance'] / m['T']))
+    
     return m
