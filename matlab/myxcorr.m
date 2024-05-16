@@ -1,14 +1,14 @@
 function [Rxx,Rxy,ryy,T] = myxcorr(x,y,lags)
 % [Rxx,Rxy,ryy,T] = myxcorr(x,y,lags) 
 % 
-% Computes auto- and corr-correlation matrices Rxx, Rxy and ryy defined as
+% Computes auto- and cross-correlation matrices Rxx, Rxy and ryy defined as
 % (after the mean is subtracted from x and y):
 %
 %   Rxx(l)= sum_n x'(n)*x(n+l)
 %   Rxy(l)= sum_n x'(n)*y(n+l)
 %   ryy   = sum_n |y(n)|^2
 %
-% This is computed in the frequency domain, returning only zero and
+% This is computed in the time domain, returning only zero and
 % positive delays l = 0 ... lags-1. Note that these definitions differ from
 % the standard definition of the cross correlation and from matlab's
 % conventional xcorr() implementation. Here y is delayed, not x, which is
