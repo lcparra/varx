@@ -158,13 +158,20 @@ for i=xdim:-1:1 % same as above but with reduced model removing i-th input
 end
 my_toc('time to compute Granger p-values',5)
 
+
 % store additional outputs in model structure
 m.A_pval = pval(:,1:ydim);
 m.B_pval = pval(:,ydim+1:end);
 m.A_Deviance = Deviance(:,1:ydim);
 m.B_Deviance = Deviance(:,ydim+1:end);
 m.T = T;
- 
+% Compute effect values and add to output
+[~,~,Dx] = size(m.B);
+[~,~,Dy] = size(m.A);
+m.Effect = [m.A_Deviance m.B_Deviance; zeros(Dx,Dy+Dx)]/m.T;
+m.Rvalue = sqrt(1-exp(-m.Effect));
+m.A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
+m.B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
 
 function [h,s2,Bias] = fit_model(Rxx,Rxy,ryy,gamma,base)
 
