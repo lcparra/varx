@@ -63,11 +63,11 @@ clf
 
 if ~isempty(o.yname) && strcmpi(o.plottype, 'Graph')
 
-    pval = [m.A_pval m.B_pval; ones(Dx,Dy+Dx)];
 
     % sqrt of Coeficient of variation, i.e. R-square=1-exp(-D/T)
-    Effect = m.Effect;
-    Rvalue = m.Rvalue;
+    pval   = [m.A_pval     m.B_pval;      ones(Dx,Dy+Dx)];
+    Effect = [m.A_Deviance m.B_Deviance; zeros(Dx,Dy+Dx)]/m.T;
+    Rvalue = sqrt(1-exp(Effect));
 
     %tiledlayout(4,Dx+Dy)%    subplot(2,3,1)
     %nexttile([2 floor((Dx+Dy)/2)])

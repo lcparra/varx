@@ -74,6 +74,7 @@ function m = varx(Y,na,X,nb,lambda)
 %     01/09/2024 returns D and T, with D/T as a rough measure of effect size
 %     04/03/2024 Changed to Tikhonov regularization so that all variables have same regularization regardless of power. pvalues otherwise not correct when power very different after applying basis functions 
 %     04/11/2024 Changed output to model structure to work with varx_display, output was getting too complicated.    
+%     05/16/2024 Aimar, changed so the model no computes the A and B Rvalues inside the main varx script
 
 % If not simulating eXternal MA channel then xdim=0
 if nargin<3 | nb==0, X=[]; nb=0; end 
@@ -165,11 +166,6 @@ m.B_pval = pval(:,ydim+1:end);
 m.A_Deviance = Deviance(:,1:ydim);
 m.B_Deviance = Deviance(:,ydim+1:end);
 m.T = T;
-% Compute effect values and add to output
-[~,~,Dx] = size(m.B);
-[~,~,Dy] = size(m.A);
-m.Effect = [m.A_Deviance m.B_Deviance; zeros(Dx,Dy+Dx)]/m.T;
-m.Rvalue = sqrt(1-exp(-m.Effect));
 m.A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
 m.B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
 
