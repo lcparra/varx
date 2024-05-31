@@ -95,8 +95,8 @@ end
 cc_pval = max(mean(repmat(abs(cc(:,:,1)),1,1,Nrand)<cc(:,:,2:end),3),1/Nrand);
 t=toc; disp(['time to compute shuffle stats for corr coeff: ' num2str(t)]); 
 
-%%
-figure(3); clf; h=[];
+%% compare VARX B with mTRF estimate
+figure(2); clf; h=[];
 for i=1:size(varx_model.B,3) 
 
     h(end+1)=subplot(3,xdim,i); 
@@ -112,13 +112,15 @@ for i=1:size(varx_model.B,3)
     clim([-1 1]*max(abs(H(:)))); colorbar
 
 end
-
-subplot(3,3,7); imagesc(log10(var_model.A_pval)); ylabel('brain channels'); xlabel('brain channels'); title('p-value VAR'); axis equal;axis tight;  caxis([-3 0]); xlabel(colorbar,'log10(p)')
-subplot(3,3,8); imagesc((varx_model.A_pval<0.01)-(var_model.A_pval<0.01));  ylabel('brain channels'); xlabel('brain channels'); title('change VARX to VAR'); axis equal;axis tight; 
-subplot(3,3,9); imagesc(log10(cc_pval)); ylabel('brain channels'); xlabel('brain channels'); title('p-value Corr. Coeff.'); axis equal;axis tight; caxis([-3 0]); xlabel(colorbar,'log10(p)') 
-
 % sublabel(h,-5,-20);    
 % exportgraphics(gcf,'../figures/VARX-brain-example_model-compare.png','Resolution',300)
+
+%% compare VARX with VAR results
+subplot(3,2,1); imagesc(log10( var_model.A_pval)); ylabel('brain channels'); xlabel('brain channels'); title('p-value VAR');  axis equal;axis tight;  caxis([-3 0]); xlabel(colorbar,'log10(p)')
+subplot(3,2,2); imagesc(log10(varx_model.A_pval)); ylabel('brain channels'); xlabel('brain channels'); title('p-value VARX'); axis equal;axis tight;  caxis([-3 0]); xlabel(colorbar,'log10(p)')
+subplot(3,2,3); imagesc((varx_model.A_pval<0.01)-(var_model.A_pval<0.01));  ylabel('brain channels'); xlabel('brain channels'); title('change VARX to VAR'); axis equal;axis tight; 
+subplot(3,2,4); imagesc(log10(cc_pval)); ylabel('brain channels'); xlabel('brain channels'); title('p-value Corr. Coeff.'); axis equal;axis tight; caxis([-3 0]); xlabel(colorbar,'log10(p)') 
+subplot(3,1,3); plot([varx_model.s2 - var_model.s2]); ylabel('power difference (VARX - VAR)'); xlabel('brain channels'); title('Change in noise power ($\sum e^2/T$)','interpreter','latex');
 
 %% help functions
 function [X]=mycircshift(X,shifts)

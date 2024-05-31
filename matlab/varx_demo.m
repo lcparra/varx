@@ -43,8 +43,9 @@ Mdl = varm(ydim,na);
 EstMdl = estimate(Mdl,y,'X',x);
 
 % some displays
-figure(3); varx_display(model,plottype='matrix',xname={'x1'},yname={'y1','y2'});
-exportgraphics(gcf,'../figures/known-model-efficacy.png', 'Resolution', 300)
+figure(3); varx_display(model,plottype='Graph',xname={'x1'},yname={'y1','y2'});
+% exportgraphics(gcf,'../figures/known-model-efficacy.png', 'Resolution', 300)
+
 figure(4); show_prediction(x,y,yest);
 
 % compare estimate to truth
@@ -58,7 +59,7 @@ plot([-1 1],[-1 1]); hold off
 axis equal; axis tight
 legend('our {\bf A}','matlab {\bf A}','our {\bf B}','matlab {\bf B}','Location','eastoutside')
 xlabel('true value'); ylabel('estimate')
-exportgraphics(gca,'../figures/known-model-true-vs-estimate.png', 'Resolution', 300)
+% exportgraphics(gca,'../figures/known-model-true-vs-estimate.png', 'Resolution', 300)
 
 %% determine the effect of regularization
 clear A B

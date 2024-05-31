@@ -165,9 +165,10 @@ m.A_pval = pval(:,1:ydim);
 m.B_pval = pval(:,ydim+1:end);
 m.A_Deviance = Deviance(:,1:ydim);
 m.B_Deviance = Deviance(:,ydim+1:end);
+m.A_Rvalue = sqrt(1-exp(-m.A_Deviance/T));
+m.B_Rvalue = sqrt(1-exp(-m.B_Deviance/T));
 m.T = T;
-m.A_Rvalue = sqrt(1-exp(-m.A_Deviance/m.T));
-m.B_Rvalue = sqrt(1-exp(-m.B_Deviance/m.T));
+m.s2 = s2/T;
 
 function [h,s2,Bias] = fit_model(Rxx,Rxy,ryy,gamma,base)
 
