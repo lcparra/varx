@@ -1,7 +1,7 @@
 addpath('../../matlab/')
 
 %%
-load model_output.mat
+load ../../data/neurolib_5min_rest_model_output.mat % load output and Cmat
 fs = 10000;
 output = resample(output',60,fs); fs = 60;
 y = output(5*fs:end,:); % cut our the firt 5 seconds

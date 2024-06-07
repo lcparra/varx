@@ -18,7 +18,7 @@ xnames = {Tab.Properties.VariableNames{5}};
 
 na=3;
 nb=na; % results too dependent on order, need larger dataset. 
-lambda=0; % I don't like that causality direction depends on this parameter
+lambda=0.00; % I don't like that causality direction depends on this parameter
 model = varx(Y,na,X,nb,lambda);
 
 figure(1)

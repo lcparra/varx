@@ -30,13 +30,10 @@ plt.show()
 ##
 # save model.output and ds.Cmat a single matlab file
 import scipy.io as sio
-sio.savemat('model_output.mat', {'output': model.output, 'Cmat': ds.Cmat})
+sio.savemat('../../data/neurolib_5min_rest_model_output.mat', {'output': model.output, 'Cmat': ds.Cmat})
 
 # show the size of model.output
 ## show the size of model.output
 print(model.output.shape)
 
-
-
-## 
-
+#

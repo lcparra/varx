@@ -19,8 +19,10 @@ clear all
 
 % define VARX model. Where there are all zeros, that path does not
 % contribute
-A(:,:,1) = [[0.3 -0.5 0]',[0 0 0]']; A(:,:,2) = [[-.5 0.4 0]',[0.5 -.7 0]'];
-B = [[1 0]',[0 0]']; % single input. the varm estimate only works for zero delay
+A(:,:,1) = [[0.3 -0.5 0]',[0 0 0    ]', [0.5 0 0]']; 
+A(:,:,2) = [[-.5 0.4  0]',[0.5 -.7 0]', [0 0 0]'];
+A(:,:,3) = [[0  0   0]',[ 0 0 0]', [0.5 0 0]'];
+B = [[1 0]',[0 0]',[0 0]']; % single input. the varm estimate only works for zero delay
 [nb,ydim,xdim] = size(B);
 [na,ydim,ydim] = size(A);
 
@@ -37,14 +39,14 @@ model = varx(y,na,x,nb,lambda);
 
 R2=1-sum(eest.^2)./sum(y.^2)
 
-% estimate model using Econometric toolbox' mvar
+% estimate model using Econometric toolbox' varm
 ydim = size(A,2);
 Mdl = varm(ydim,na);
 EstMdl = estimate(Mdl,y,'X',x);
 
 % some displays
-figure(3); varx_display(model,plottype='Graph',xname={'x1'},yname={'y1','y2'});
-% exportgraphics(gcf,'../figures/known-model-efficacy.png', 'Resolution', 300)
+figure(3); varx_display(model,plottype='Graph',xname={'x1'},yname={'y1','y2','y3'});
+exportgraphics(gcf,'../figures/known-model-efficacy.png', 'Resolution', 300)
 
 figure(4); show_prediction(x,y,yest);
 
@@ -59,7 +61,7 @@ plot([-1 1],[-1 1]); hold off
 axis equal; axis tight
 legend('our {\bf A}','matlab {\bf A}','our {\bf B}','matlab {\bf B}','Location','eastoutside')
 xlabel('true value'); ylabel('estimate')
-% exportgraphics(gca,'../figures/known-model-true-vs-estimate.png', 'Resolution', 300)
+exportgraphics(gca,'../figures/known-model-true-vs-estimate.png', 'Resolution', 300)
 
 %% determine the effect of regularization
 clear A B
