@@ -153,6 +153,7 @@ xdim = size(x,2);
 for i=xdim:-1:1 % same as above but with reduced model removing i-th input
     ii = 1:sum(lags); ii((1:lags(i))+sum(lags(1:i-1)))=[]; % use inputs excluding i-th
     [~,s2r,Biasr] = fit_model(Rxx(ii,ii),Rxy(ii,:),ryy,gamma,{base{[1:i-1 i+1:xdim]}});
+    disp([1:i-1 i+1:xdim])
     df = T-sum(params); % degrees of freedom of the full model
     Deviance(:,i) = df*log(s2r./s2) - T*Biasr + T*Bias; % not the exact formula, but I calibrated and seems to work well for small T
     pval(:,i) = 1-chi2cdf(Deviance(:,i),params(i));
