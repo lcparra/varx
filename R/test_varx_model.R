@@ -2,11 +2,11 @@
 library(R.matlab)
 
 # Function to source if saved separately
-source("my_functions.R")  # Assuming all your functions are saved here
+source("R/varxModel.R")  # Assuming all your functions are saved here
 
 # Load data from .mat files
-x_data <- readMat('testdata/x.mat')
-y_data <- readMat('testdata/y.mat')
+x_data <- readMat('R/testdata/x.mat')
+y_data <- readMat('R/testdata/y.mat')
 
 # Extract matrices from list
 x <- x_data$x
@@ -18,6 +18,7 @@ na <- 10
 nb <- 20
 gamma <- 0
 
+trace(varx, browser, at = 2) 
 # Call the varx function from your sourced R scripts
 model <- varx(y, na, x, nb, gamma)
 
