@@ -1,26 +1,4 @@
 
-tensor_product <- function(A, B, dimA, dimB) {
-  # Check the dimensions
-  if (length(dim(A)) < dimA || length(dim(B)) < dimB) {
-    stop("Invalid dimensions.")
-  }
-  
-  # Get the dimensions of the input matrices
-  dim_A <- dim(A)
-  dim_B <- dim(B)
-  
-  # Initialize the output matrix
-  C <- matrix(0, nrow = dim_A[1], ncol = dim_B[2])
-  
-  # Perform the tensor product
-  for (i in 1:dim_A[1]) {
-    for (j in 1:dim_B[2]) {
-      C[i, j] <- sum(A[i, ] * B[, j])
-    }
-  }
-  
-  return(C)
-}
 library(tensor)
 varx <- function(Y, na, X = NULL, nb = NULL, gamma = 0) {
   # Check if X and nb are provided and handle defaults
