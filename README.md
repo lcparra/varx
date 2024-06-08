@@ -6,5 +6,5 @@ Lucas C. Parra, Aimar Silvan, Maximilian Nentwich, Jens Madsen, Behtash Babadi, 
 
 [https://arxiv.org/abs/2404.10834](https://arxiv.org/abs/2404.10834)
 
-The code is available for matlab and python. R implementation is coming soon. 
+The code is available for matlab, python and R.
 
