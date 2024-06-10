@@ -1,4 +1,4 @@
-# VARX Grange Analysis
+# VARX Granger Analysis
 
 This code is described in the following preprint: 
 
