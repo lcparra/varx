@@ -296,8 +296,8 @@ def varx(Y, na, X, nb, gamma):
     
     # Granger Causal test for all inputs (external and recurrent)
     xdim = x.shape[1]
-    Deviance = np.zeros((2, xdim))
-    pval = np.zeros((2, xdim))
+    Deviance = np.zeros((ydim, xdim))
+    pval = np.zeros((ydim, xdim))
     for i in range(xdim-1, -1, -1):
         ii = np.arange(0, np.sum(lags)).astype(int)
         startidx = int(np.sum(lags[0:i]))
