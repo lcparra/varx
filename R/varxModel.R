@@ -102,8 +102,8 @@ varx <- function(Y, na, X = NULL, nb = NULL, gamma = 0) {
   # Granger Causal test for all inputs (external and recurrent)
   #initialize deviance and pval matrices size is 2,xdim
   xdim <- ncol(x)
-  Deviance <- matrix(0, nrow = 2, ncol = xdim)
-  pval <- matrix(0, nrow = 2, ncol = xdim)
+  Deviance <- matrix(0, nrow = ydim, ncol = xdim)
+  pval <- matrix(0, nrow = ydim, ncol = xdim)
   iterarray = 1:xdim
   for (i in xdim:1) { # same as above but with reduced model removing i-th input
     ii <- 1:sum(lags)
