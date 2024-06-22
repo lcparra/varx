@@ -232,7 +232,6 @@ def varx(Y, na, X, nb, gamma):
     xdim = X[0].shape[1] if X[0] is not None else 0
         
     # Initialize basis functions
-    
     if isinstance(nb, np.ndarray):
         m = {'base': nb}  # save for output
         # internally, base variable is a list with one base for each dimension
@@ -303,7 +302,6 @@ def varx(Y, na, X, nb, gamma):
         startidx = int(np.sum(lags[0:i]))
         endidx = startidx + int(lags[i,0])
         ii = np.delete(ii, np.arange(startidx, endidx).astype(int))
-        # , np.sum(lags[0:i])+lags[i]))
         
         _, s2r, Biasr = fit_model(Rxx[ii, :][:, ii], Rxy[ii, :], ryy, gamma, [base[j] for j in range(xdim) if j != i])
         
@@ -321,8 +319,6 @@ def varx(Y, na, X, nb, gamma):
     m['T'] = T
     
     # Compute effect values and add to output
-    Dx = np.shape(m['B'])[2]
-    Dy = np.shape(m['A'])[2]
     m['A_Rvalue'] = np.sqrt(1 - np.exp(-m['A_Deviance'] / m['T']))
     m['B_Rvalue'] = np.sqrt(1 - np.exp(-m['B_Deviance'] / m['T']))
     
