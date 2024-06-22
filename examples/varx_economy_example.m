@@ -1,11 +1,11 @@
 clf
 load Data_USEconModel
-N = size(Data,2);
 valid = ~isnan(sum(Data,2));
 Time =  DataTimeTable.Time(valid);
-sort = [1 2 4 5 6 7 9 10 11 12 3 8 13 14]; % rates last
+sort = [1 2 4 5 6 7 9 11 12 3 8 14]; % rates last, not M1 money supply 
 Data= Data(valid,sort);
 series = {series{sort}};
+N = size(Data,2);
 
 % get the abraviations
 for i=1:length(series), 
@@ -23,7 +23,7 @@ end;
 
 
 addpath('../matlab/')
-exogenous = [3 6]; % Goverment Expenditure; Private investment
+exogenous = [3 10]; % Goverment Expenditure; Federal Funds Rate
 endogenous = setdiff(1:N,exogenous); 
 
 
@@ -33,7 +33,7 @@ model = varx(Y,6,X,6);
 
 % some displays
 figure(1)
-[Graph,G_plot]=varx_display(model,plottype='Graph no filter',xname=xname,yname=yname)
+[Graph,G_plot]=varx_display(model,plottype='Graph no filter',xname=xname,yname=yname,threshold=0.001)
 
 clf
 h(1)=subplot(2,1,1); %tiledlayout(1,3); nexttile([1 1])
@@ -55,7 +55,7 @@ set(gca,'XTick',1:14);  set(gca,'YTick',1:14);
 set(gca,'XTickLabelRotation',45); set(gca,'FontSize',8)
 
 
-sublabel(h,-10,-40)
+sublabel(h(1:3),-10,-40)
 
 
 exportgraphics(gcf,'../figures/economy_example.png', 'Resolution', 300)
