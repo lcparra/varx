@@ -7,3 +7,4 @@ papers/*
 
 examples/neurolib_brainmodel/.idea/workspace.xml
 python/__pycache__/varxModel.cpython-310.pyc
+/examples/neurolib_brainmodel/.idea

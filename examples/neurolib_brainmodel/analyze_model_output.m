@@ -2,12 +2,12 @@ addpath('../../matlab/')
 
 %%
 load ../../data/neurolib_5min_rest_model_output.mat
-y = output(:,5*fs:end)'; % cut our the firt 5 seconds
+% y = output(:,5*fs:end)'; % cut our the firt 5 seconds
+y = output'; clear output
 
 %
-y = y-mean(y);
-y = y./std(y);
-model = varx(y,2);
+%y = y-mean(y);
+%y = y./std(y);
 model = varx(y,2);
 
 %%
@@ -26,7 +26,7 @@ xlabel('Brain areas');
 colormap('hot')
 
 h(3)=subplot(1,4,3);
-plot(R(:),sqrt(Cmat(:)),'.'); 
+plot(sqrt(Cmat(:)),R(:),'.'); 
 xlabel('True connectivity'); ylabel('VARX estimate R')
 title('Model connectivity')
 
