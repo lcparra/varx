@@ -156,7 +156,7 @@ def fit_model(Rxx, Rxy, ryy, gamma, base):
 # VARX
 import numpy as np
 from scipy.stats import chi2
-def varx(Y, na, X, nb, gamma):
+def varx(Y, na, X=None, nb=0, gamma=0):
     '''
     model = varx(Y,na,X,nb,gamma) fits an vectorial ARX model to the MIMO
     system output Y with input X by minimizing the equation error e(t), i.e.
