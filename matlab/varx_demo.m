@@ -46,7 +46,7 @@ EstMdl = estimate(Mdl,y,'X',x);
 
 % some displays
 figure(3); varx_display(model,plottype='Graph',xname={'x1'},yname={'y1','y2','y3'});
-exportgraphics(gcf,'../figures/known-model-efficacy.png', 'Resolution', 300)
+saveas(gcf,'../figures/known-model-efficacy.png')
 
 figure(4); show_prediction(x,y,yest);
 

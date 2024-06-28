@@ -32,8 +32,8 @@ xlabel('Year')
 axis tight
 h(2)=subplot(1,2,2);
 plot(Graph,'LineWidth',G_plot.width*0.5,'XData',G_plot.xdata,'YData',G_plot.ydata,...
-            'EdgeColor',G_plot.color,'NodeColor',G_plot.nodecolor);
+            'EdgeColor',G_plot.color,'NodeColor',G_plot.nodecolor,'ArrowSize',25);
 axis off
 
 sublabel(h,10,-20);
-exportgraphics(gcf,'../figures/varx_union_history.png','Resolution',300)
+saveas(gcf,'../figures/varx_union_history.png')
