@@ -1,6 +1,6 @@
 figure(1)
 clf
-load Data_USEconModel
+load ../data/Data_USEconModel.mat
 valid = ~isnan(sum(Data,2));
 Time =  DataTimeTable.Time(valid);
 sort = [1 2 4 5 7 9 11 12 3 8 14]; % rates last, not M1 money supply, not price delator 
