@@ -6,9 +6,9 @@ import neurolib.utils.stimulus as stim
 import numpy as np
 import scipy.io as sio
 from scipy import signal
-import sys
 
 # adding varx to the system path
+import sys
 sys.path.insert(0, '../../python')
 from varxModel import varx
 
@@ -33,9 +33,8 @@ if add_stimulus:
     # assign to input current
     model.params["ext_exc_current"] = ac_stimulus
 
-# model.run(bold=True)
-model.run(chunkwise=True,bold=True)
-# model.run()
+# model.run(chunkwise=True,bold=True)
+model.run()
 
 # donwsample x by a factor of 100 with antialiasing using scipy functions
 q = 100
@@ -44,7 +43,7 @@ output = signal.decimate(model.output,q)
 
 # output = output[:,round(fs*5):] # cut out the first 5 seconds of the data
 
-varx_model = varx(output.T,2,None,0,0)
+varx_model = varx(output.T,2)
 R = varx_model['A_Rvalue'] - np.diag(np.diag(varx_model['A_Rvalue']))
 
 plt.figure(1), plt.clf()
@@ -84,9 +83,9 @@ if add_stimulus:
 
 # save model.output and ds.Cmat a single matlab file
 if add_stimulus:
-    sio.savemat('../../data/neurolib_5min_rest_model_output.mat', {'output': output, 'Cmat': ds.Cmat, 'fs': fs})
-else:
     sio.savemat('../../data/neurolib_5min_stimulus_model_output.mat', {'output': output, 'Cmat': ds.Cmat, 'fs': fs})
+else:
+    sio.savemat('../../data/neurolib_5min_rest_model_output.mat', {'output': output, 'Cmat': ds.Cmat, 'fs': fs})
 
 
 

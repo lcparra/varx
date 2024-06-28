@@ -38,13 +38,16 @@ imagesc(SC); title('Inverse covariance')
 xlabel('Brain areas'); ylabel('Brain areas')
 colormap('hot')
 
-
-sublabel(h,-5,-25);
+%%
+set(gcf, 'CurrentAxes', h(1)); text(-10,0,'A)','FontSize',14,'FontName','Arial','FontWeight','bold');
+set(gcf, 'CurrentAxes', h(2)); text(-10,0,'B)','FontSize',14,'FontName','Arial','FontWeight','bold');
+set(gcf, 'CurrentAxes', h(3)); text(-0.2,0.5,'C)','FontSize',14,'FontName','Arial','FontWeight','bold');
+set(gcf, 'CurrentAxes', h(4)); text(-10,0,'D)','FontSize',14,'FontName','Arial','FontWeight','bold');
+%%
 
 display(['inverse cov, Spearman r=' num2str(corr(SC(:),Cmat(:),'Type','Spearman'),2)])
 display(['varx, Spearman r='        num2str(corr(R(:),Cmat(:),'Type','Spearman'),2)])
 
-saveas(gca,'../../figures/neurolib_vs_varx.png')
-
+exportgraphics(gcf,'../../figures/neurolib_vs_varx.png','Resolution',300)
 
 
