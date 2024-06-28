@@ -101,7 +101,7 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
     end
 
     % now plot the Graph
-    plot(Graph,'LineWidth',G_plot.width,'XData',G_plot.xdata,'YData',G_plot.ydata,'EdgeColor',G_plot.color,'Nodecolor',G_plot.nodecolor);
+    plot(Graph,'LineWidth',G_plot.width,'XData',G_plot.xdata,'YData',G_plot.ydata,'EdgeColor',G_plot.color,'Nodecolor',G_plot.nodecolor,'ArrowSize',20);
     ylim([-1 1]); axis equal; axis off; 
     A_Rvalue = m.A_Rvalue;
     B_Rvalue = m.B_Rvalue;
