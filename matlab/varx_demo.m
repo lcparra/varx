@@ -1,7 +1,7 @@
 
 %% VARX identification on real data
 clear all
-load SteamEng % arbitrary data to demo the code, not to test performance!
+load ../data/SteamEng.mat % arbitrary data to demo the code, not to test performance!
 x=[Pressure,MagVolt]; xname = {'Pressure','MagVolt'}; 
 y=[GenVolt,Speed]; yname = {'GenVolt','Speed'};
 na=10; nb=20; lambda=0;
