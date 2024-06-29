@@ -59,7 +59,7 @@ plot(B(:),model.B(:),'x')
 plot(B(1,:),EstMdl.Beta(:),'x')
 plot([-1 1],[-1 1]); hold off
 axis equal; axis tight
-legend('our {\bf A}','matlab {\bf A}','our {\bf B}','matlab {\bf B}','Location','eastoutside')
+legend('our {\bf A}','matlab {\bf A}','our {\bf B}','matlab {\bf B}','Location','northwest')
 xlabel('true value'); ylabel('estimate')
 exportgraphics(gca,'../figures/known-model-true-vs-estimate.png', 'Resolution', 300)
 

@@ -2,8 +2,8 @@
 % to BHA allowing for a "recurrent" input using a VARX model. 
 
 addpath('../matlab/')
-stim_features = {'optical_flow','fixations'};
-str = {'flow','fixation'};
+% stim_features = {'optical_flow','fixations'};
+% str = {'flow','fixation'};
 stim_features = {'fixations'};
 str = {'fixation'};
 
