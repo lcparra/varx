@@ -81,7 +81,13 @@ var_model = varx(Y,na);
 
 %% some displays
 figure(1)
-varx_display(varx_model,fs=fs);   
+varx_display(varx_model,fs=fs); 
+nexttile(1); text(-10,0,'A','FontSize',14,'FontName','Times');
+nexttile(3); text(-6,0,'B','FontSize',14,'FontName','Times');
+daspect([1 3 1]); % make wider so we can see
+nexttile(4,[1 3]); text(.15,0,'C','FontSize',14,'FontName','Times');
+nexttile(7); text(-0.03,0,'D','FontSize',14,'FontName','Times');
+
 % exportgraphics(gcf,'../figures/VARX-brain-example.png','Resolution',300)
 
 
@@ -112,7 +118,9 @@ for i=1:size(varx_model.B,3)
     clim([-1 1]*max(abs(H(:)))); colorbar
 
 end
-% sublabel(h,-5,-20);    
+subplot(3,1,1); text(-0.05,0,'E','FontSize',14,'FontName','Times');
+subplot(3,1,2); text(-0.05,0,'F','FontSize',14,'FontName','Times');
+   
 % exportgraphics(gcf,'../figures/VARX-brain-example_model-compare.png','Resolution',300)
 
 %% compare VARX with VAR results

@@ -46,6 +46,10 @@ EstMdl = estimate(Mdl,y,'X',x);
 
 % some displays
 figure(3); varx_display(model,plottype='Graph',xname={'x1'},yname={'y1','y2','y3'});
+subplot(2,2,1); text(-2,1,'A','FontSize',14,'FontName','Times');
+subplot(2,4,3); text(-1,1,'B','FontSize',14,'FontName','Times');
+%subplot(2,4,4); text(-1,1,'C','FontSize',14,'FontName','Times');
+subplot(4,4,9); text(0,0,'D','FontSize',14,'FontName','Times');
 saveas(gcf,'../figures/known-model-efficacy.png')
 
 figure(4); show_prediction(x,y,yest);
