@@ -26,7 +26,7 @@ figure(1)
 
 figure(2)
 clf
-h(1)=subplot(1,2,1); plot(year,[Y X]); stkplt
+h(1)=subplot(1,2,1); plot(year,[Y X]);  stackplot
 legend({ynames{:},xnames{:}},'Location','southoutside')
 xlabel('Year')
 axis tight

@@ -137,7 +137,7 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
         if na>1 % it is na is less, showing as a curve is not helpful
             for i=1:Dy
                 subplot(4,Dy+Dx,2*(Dy+Dx)+i);
-                plot((1:na)/o.fs,m.A(:,:,i).*shiftdim(pval(1:Dy,i)<0.0001,1)); stack
+                plot((1:na)/o.fs,m.A(:,:,i).*shiftdim(pval(1:Dy,i)<0.0001,1)); stackplot
                 set(gca,'ytick',[]); title(['A: ' node_name{i}])
                 if o.fs==1, xlabel('samples'); else, xlabel('seconds'); end
                 if i==1
@@ -151,7 +151,7 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
             for i=1:Dx
                 subplot(4,Dy+Dx,2*(Dy+Dx)+Dy+i);
                 plot((1:nb)/o.fs*1,m.B(:,:,i).*shiftdim(pval(1:Dy,Dy+i)<0.0001,1));
-                set(gca,'ytick',[]); title(['B: ' node_name{Dy+i}]); stack
+                set(gca,'ytick',[]); title(['B: ' node_name{Dy+i}]); stackplot
                 if o.fs==1, xlabel('samples'); else, xlabel('seconds'); end
             end
         else  % if na<=1 better show filters as a matrix
@@ -182,7 +182,7 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
         for i=1:Dy
             subplot(4,Dy+Dx,3*(Dy+Dx)+i);
             plot((1:o.duration*o.fs)/o.fs,Ainv(:,:,i));
-            set(gca,'ytick',[]); stack
+            set(gca,'ytick',[]); stackplot
             if o.fs==1, xlabel('samples'); else, xlabel('seconds'); end
             if i==1
                 axis on; ylabel('Impulse response')
@@ -195,7 +195,7 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
         for i=1:Dx
             subplot(4,Dy+Dx,3*(Dy+Dx)+Dy+i);
             plot((1:o.duration*o.fs)/o.fs,H(:,:,i));
-            set(gca,'ytick',[]); stack
+            set(gca,'ytick',[]); stackplot
             if o.fs==1, xlabel('samples'); else, xlabel('seconds'); end
         end
     end
@@ -282,32 +282,4 @@ end
 
 end
 
-% got this from Bert de Vries's stkplt
-function stack
 
-% find plots, get rid of vertical lines
-hp = findobj(gca,'type','line'); hplots=[];
-for i=1:length(hp)
-    xd = get(hp(i),'xdata');
-    if any(xd~=xd(1)), hplots=[hplots,hp(i)]; end %if
-end
-nsig = length(hplots);
-
-grp = 1:nsig; ngrp = max(grp);
-
-space = 0.1/ngrp;
-range = (1-(ngrp+1)*space)/ngrp;
-
-% stack
-bias = zeros(nsig,1); scale = zeros(nsig,1);
-for i=1:nsig
-    y = get(hplots(i),'YData');
-    ymax = nanmax(y); ymin = nanmin(y);
-    offset = grp(i)*space + (grp(i)-1)*range;
-    scale(i) = range/(ymax-ymin + eps); % scale to [0->range]
-    bias(i) = offset - scale(i)*ymin;
-    set(hplots(i),'YData',scale(i)*y+bias(i), 'Userdata',[scale(i) bias(i)]);
-end
-set(gca,'YTick',[]);
-
-end

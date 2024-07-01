@@ -37,7 +37,7 @@ model = varx(Y,4,X,6);
 
 clf
 h(1)=subplot(2,1,1); %tiledlayout(1,3); nexttile([1 1])
-plot(Time,Data); xlabel('year')
+plot(Time,Data); xlabel('year'); %stackplot
 ylabel('annual rates')
 legend(series','Location','eastoutside','box','off')
 title('History')
