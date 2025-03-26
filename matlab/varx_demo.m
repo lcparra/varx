@@ -311,7 +311,7 @@ xlabel('True values'); ylabel('Estimated values')
 legend('MA coeeficients','location','northwest')
 
 
-%% now try fitting model with a missing input variable 
+%% Try fitting model with a missing input variable 
 
 % define VARX model with no cross-talk between the two variables
 clear A
@@ -356,6 +356,58 @@ plot(A(:),model.A(:),'.'); hold on;
 plot([-1 1],[-1 1]); hold off
 xlabel('true value'); ylabel('estimate')
 
+%% now try fitting model with a partially missing input variable  
+% Conclusion: missestimate of B filter only happens if input is correlated
+% and go to the same node. Connectivity of the network does not matter.
+% define VARX model with with cross-talk between the two variables
+clear A B
+A(:,:,1) = [[0.9 -0.5 0]',[0.7 0 0]']; A(:,:,2) = [[0.6 0 0]',[-0.5 -.7 0]'];
+B(:,:,1) = [[1 .1]',[1 0]']; % 1st inputs, misestimate only if it affects two nodes
+B(:,:,2) = [[0 0]',[1 0.1]']; % 2nd inputs, only affect output 2
+[nb,ydim,xdim] = size(B);
+[na,ydim,ydim] = size(A);
+
+% simulate 
+x = randn(1000,xdim); % independent inputs
+x = randn(1000,xdim)*[1 0.5;0.5 1]; % misestimate only if correlated
+[y,e] = varx_simulate(B,A,x,1);
+
+% estimate VARX model now with the input included
+model = varx(y,na,x,nb); 
+
+% some displays
+figure(1)
+varx_display(model);
+sgtitle('Simulated VARX and estimation with missing input')
+
+% compare estimate to truth
+figure(3); clf
+subplot(1,2,1); 
+plot(A(:),model.A(:),'.'); hold on;
+plot(B(:),model.B(:),'x')
+plot([-1 1],[-1 1]); hold off
+legend('{\bf A}','{\bf B}','Location','northwest')
+xlabel('true value'); ylabel('estimate')
+title('Complete input')
+
+
+% estimate VARX model with one missing input and with both inputs
+model = varx(y,na,x(:,1),nb); 
+
+% some displays
+figure(2); clf
+varx_display(model);
+sgtitle('Simulated VARX and estimation with input included')
+
+% compare estimate to truth
+figure(3)
+subplot(1,2,2); 
+plot(A(:),model.A(:),'.'); hold on;
+plot(stack(B(:,:,1)),stack(model.B),'x')
+plot([-1 1],[-1 1]); hold off
+legend('{\bf A}','{\bf B}','Location','northwest')
+xlabel('true value'); ylabel('estimate')
+title('Missing correlated input')
 
 %% model long smooth AR coefficients, see if we recover them correctly. 
 % make smooth A
