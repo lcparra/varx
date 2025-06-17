@@ -27,7 +27,7 @@ function [Graph,G_plot]=varx_display(m,o)
 %    'Graph': digraph visualization, Effect size matrices with input x
 %           and output y names, and impulse responses, also
 %           outputs digraph structures. You can add 'no filter' to the
-%           string if you want to suppress showing the filters. 
+%           string if you want to suppress showing the filters.
 %
 % duration: a scalar indicating for how long to compute and display the
 %   impulse respones (IR). The IR are from every variable to every
@@ -45,6 +45,7 @@ function [Graph,G_plot]=varx_display(m,o)
 %                              'Default', now also plots R-value matrices
 % April 11, 2024, Lucas, fix impulse response display in 'Default' option
 % April 13, 2024, Lucas, make more space for Graph, and change a few other visuals
+% June 5, 2025, Lucas, account for rare case of missing line with when there are no links at all 
 
 % define arguments with defaults for the options variables o
 arguments
@@ -88,6 +89,7 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
     Adj = pval<o.threshold;
     Graph = digraph(s(Adj),t(Adj),Rvalue(Adj),node_name,'omitselfloops');
     G_plot.width = 10*Graph.Edges.Weight/max(Graph.Edges.Weight);
+    if isempty(G_plot.width), G_plot.width=1; end
     if numedges(Graph)
         for i=1:numedges(Graph)
             if any(strcmp(Graph.Edges.EndNodes{i,1},o.xname))
@@ -102,7 +104,7 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
 
     % now plot the Graph
     plot(Graph,'LineWidth',G_plot.width,'XData',G_plot.xdata,'YData',G_plot.ydata,'EdgeColor',G_plot.color,'Nodecolor',G_plot.nodecolor,'ArrowSize',20);
-    ylim([-1 1]); axis equal; axis off; 
+    ylim([-1 1]); axis equal; axis off;
     A_Rvalue = m.A_Rvalue;
     B_Rvalue = m.B_Rvalue;
 
@@ -121,12 +123,13 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
     if ~isempty(B_Rvalue)
         % nexttile([2 Dx+Dy-floor((Dx+Dy)/2)-floor((Dx+Dy)/3)])
         subplot(2,4,4)
-        imagesc(B_Rvalue.*(m.B_pval<o.threshold)); ylabel('Effect on y(t)');
+        imagesc(B_Rvalue.*(m.B_pval<o.threshold)); %ylabel('Effect on y(t)');
         if clim_max>0, clim([0 clim_max]); end
         xlabel('Cause x(t)'); set(gca,'xticklabel',{})
         title('B Effect size');
         set(gca,'DataAspectRatio',[1 1 1])
         %      set(gca,"YTick",[1:size(A_Rvalue,1)]); set(gca,"YTickLabel",node_name(1:size(A_Rvalue,2)),"YTickLabelRotation",45)
+        set(gca,"YTick",[1:length(o.yname)]); set(gca,"YTickLabel",node_name(1:length(o.yname)),"YTickLabelRotation",45)
         set(gca,"XTick",[1:size(B_Rvalue,1)]); set(gca,"XTickLabel",node_name(end-size(B_Rvalue,2)+1:end),"XTickLabelRotation",45)
     end
     xlabel(colorbar,'R');
@@ -253,7 +256,8 @@ elseif isempty(o.yname) || strcmpi(o.plottype, 'Default')
     A = m.A; % for i=1:Dy, A(:,i,i)=0; end
     imagesc(0.5:na+0.5,1:Dy,reshape(permute(A,[2 3 1]),Dy,Dy*na));
     set(gca,'XTick',1:na)
-    clim([-1 1]*max(abs(A(:))));   colorbar
+    clim([-1 1]*max(abs(A(:))));
+    colorbar;
     ylabel('Effect on y(t)');
     xlabel('lag (samples)');
     title('Filter A')
