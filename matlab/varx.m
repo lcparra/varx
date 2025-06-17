@@ -9,7 +9,7 @@ function m = varx(Y,na,X,nb,lambda)
 % where * represents a convolution.  The model cotrains the following
 % variables, stored as stucture elements:
 % 
-% model = A, B, A_pval, B_pval, A_Deviance,B_Deviance, T
+% model = A, B, A_pval, B_pval, A_Deviance,B_Deviance,A_Rvalue,B_Rvalue,s2,T
 % 
 % A and B are filter model parameters found with conventional least squares
 % with ridge regression. They are stored as tensor of size [na,ydim,ydim]
@@ -29,7 +29,9 @@ function m = varx(Y,na,X,nb,lambda)
 % A_Deviance, B_Deviance ,T are Deviance and number of sample used in the
 % estimation of p-values, and Deviance/T can serve as a measure of effect
 % size, and can be used to compute generalized R-square: R2 = 1 -
-% exp(-Devinace/T).
+% exp(-Devinace/T). These are returned as A_Rvalue, B_Rvalue. 
+% 
+% s2 is the mean squared error. 
 %
 % varx(Y,na,X,base,lambda) If base is not a scalar, it is assumed that it
 % represent basis functions for filters B of size [filter length, number of
@@ -74,7 +76,8 @@ function m = varx(Y,na,X,nb,lambda)
 %     01/09/2024 returns D and T, with D/T as a rough measure of effect size
 %     04/03/2024 Changed to Tikhonov regularization so that all variables have same regularization regardless of power. pvalues otherwise not correct when power very different after applying basis functions 
 %     04/11/2024 Changed output to model structure to work with varx_display, output was getting too complicated.    
-%     05/16/2024 Aimar, changed so the model no computes the A and B Rvalues inside the main varx script
+%     05/16/2024 Aimar, changed so the model now computes the A and B Rvalues inside the main varx script
+%     06/05/2025 Lucas, noted cases with negative Devinace for large paramater count. Limiting it to no less than 0
 
 % If not simulating eXternal MA channel then xdim=0
 if nargin<3 | nb==0, X=[]; nb=0; end 
@@ -154,7 +157,7 @@ for i=xdim:-1:1 % same as above but with reduced model removing i-th input
     ii = 1:sum(lags); ii((1:lags(i))+sum(lags(1:i-1)))=[]; % use inputs excluding i-th
     [~,s2r,Biasr] = fit_model(Rxx(ii,ii),Rxy(ii,:),ryy,gamma,{base{[1:i-1 i+1:xdim]}});
     df = T-sum(params); % degrees of freedom of the full model
-    Deviance(:,i) = df*log(s2r./s2) - T*Biasr + T*Bias; % not the exact formula, but I calibrated and seems to work well for small T
+    Deviance(:,i) = max(df*log(s2r./s2) - T*Biasr + T*Bias,0); % not the exact formula, but I calibrated and seems to work well for small T. For large parameter count this approximation may be negative, hence the max()
     pval(:,i) = 1-chi2cdf(Deviance(:,i),params(i));
 end
 my_toc('time to compute Granger p-values',5)
