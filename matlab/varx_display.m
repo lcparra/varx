@@ -54,7 +54,8 @@ arguments
     o.xname cell = {}
     o.duration double = 0 % no impulse response is shown
     o.fs double = 1       % lags displayed in samples.
-    o.threshold double = 0.001 % only links with lower values shown
+    o.threshold double = 0.001 % only links with lower p-values shown
+    o.Rthreshold double = 0.02 % set to zero if you want no thresholding on R
     o.plottype char = 'Default'
 end
 
@@ -86,7 +87,7 @@ if ~isempty(o.yname) && contains(o.plottype, 'Graph')
 
     % generate the graph and set more graph visuals
     [s,t]=meshgrid(1:Dy+Dx,1:Dy+Dx);
-    Adj = pval<o.threshold;
+    Adj = pval<o.threshold & Rvalue>o.Rthreshold;
     Graph = digraph(s(Adj),t(Adj),Rvalue(Adj),node_name,'omitselfloops');
     G_plot.width = 10*Graph.Edges.Weight/max(Graph.Edges.Weight);
     if isempty(G_plot.width), G_plot.width=1; end
