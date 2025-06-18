@@ -167,7 +167,7 @@ def varx(Y, na, X=None, nb=0, gamma=0):
     where * represents a convolution.  The model contains the following
     variables, stored as stucture elements:
 
-    model = A, B, A_pval, B_pval, A_Deviance,B_Deviance, T
+    model = A, B, A_pval, B_pval, A_Deviance,B_Deviance, A_Rvalue,B_Rvalue,s2,T
 
     A and B are filter model parameters found with conventional least squares
     with ridge regression. They are stored as tensor of size [na,ydim,ydim]
@@ -187,7 +187,8 @@ def varx(Y, na, X=None, nb=0, gamma=0):
     A_Deviance, B_Deviance ,T are Deviance and number of sample used in the
     estimation of p-values, and Deviance/T can serve as a measure of effect
     size, and can be used to compute generalized R-square: R2 = 1 -
-    exp(-Devinace/T).
+    exp(-Devinace/T). exp(-Devinace/T). These are returned as A_Rvalue, B_Rvalue.
+    s2 is the mean squared error.
 
     varx(Y,na,X,base,gamma) If base is not a scalar, it is assumed that it
     represent basis functions for filters B of size [filter length, number of
@@ -307,7 +308,7 @@ def varx(Y, na, X=None, nb=0, gamma=0):
         
         df = T - np.sum(params)  # degrees of freedom of the full model
         
-        Deviance[:, i] = df * np.log(s2r / s2) - T * Biasr + T * Bias  # not the exact formula, but I calibrated and seems to work well for small T
+        Deviance[:, i] = np.maximum(df * np.log(s2r / s2) - T * Biasr + T * Bias,0)  # not the exact formula, but I calibrated and seems to work well for small T. For large parameter count this approximation may be negative, hence the maximum()
         
         pval[:, i] = 1 - chi2.cdf(Deviance[:, i], params[i])
     
