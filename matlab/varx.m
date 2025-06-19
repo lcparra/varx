@@ -82,9 +82,9 @@ function m = varx(Y,na,X,nb,lambda)
 % If not simulating eXternal MA channel then xdim=0
 if nargin<3 | nb==0, X=[]; nb=0; end 
 
-% make it into a cell, if not already, so we can deal with list of data records using the same code
-if ~iscell(Y), Y={Y}; end
-if ~iscell(X), X={X}; end
+% make it into a cell vector, if not already, so we can deal with list of data records using the same code.
+if ~iscell(Y), Y={Y}; else Y={Y{:}}; end
+if ~iscell(X), X={X}; else X={X{:}}; end
 
 ydim = size(Y{1},2); 
 xdim = size(X{1},2); 
