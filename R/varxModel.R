@@ -111,7 +111,7 @@ varx <- function(Y, na, X = NULL, nb = NULL, gamma = 0) {
     ii <- ii[-((1:lags[i]) + idxaddition)] # use inputs excluding i-th
     fit <- fit_model(Rxx[ii, ii], Rxy[ii, ], ryy, gamma, base[setdiff(iterarray,i)])
     df <- T - sum(params) # degrees of freedom of the full model
-    Deviance[, i] <- df * log(fit$s2 / s2) - T * fit$Bias + T * Bias # not the exact formula, but I calibrated and seems to work well for small T
+    Deviance[, i] <- max(df * log(fit$s2 / s2) - T * fit$Bias + T * Bias, 0)
     pval[, i] <- 1 - pchisq(Deviance[, i], params[i])
   }
 
