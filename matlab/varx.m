@@ -1,6 +1,6 @@
-function m = varx(Y,na,X,nb,lambda)
+function m = varx(Y,na,X,nb,lambda,granger)
 
-% model = varx(Y,na,X,nb,lambda) fits an vectorial ARX model to the MIMO
+% model = varx(Y,na,X,nb,lambda,ganger) fits an vectorial ARX model to the MIMO
 % system output Y with input X by minimizing the equation error e(t), i.e.
 % equation error model:
 %
@@ -9,7 +9,7 @@ function m = varx(Y,na,X,nb,lambda)
 % where * represents a convolution.  The model cotrains the following
 % variables, stored as stucture elements:
 % 
-% model = A, B, A_pval, B_pval, A_Deviance,B_Deviance,A_Rvalue,B_Rvalue,s2,T
+% model = A, B, s2, AIC, T
 % 
 % A and B are filter model parameters found with conventional least squares
 % with ridge regression. They are stored as tensor of size [na,ydim,ydim]
@@ -22,29 +22,37 @@ function m = varx(Y,na,X,nb,lambda)
 % although there is no theoretical reason not to include instant effect in
 % the external input. To avoid instant effects, the user can simply delay
 % the input by one sample.
+%
+% s2 is the mean squared error, and AIC is the Akaike Information
+% Criterion, i.e. an estimate of the generalization error. This can be used
+% to select optimal parameters na and nb with minimal generalization error.
+% AIC is computed for each channel in y. To have a single estimate for
+% selecting a best na and nb, one can use sum(AIC). If the goal is to first
+% select parameters, and p-values are not needed, then it is best to set
+% granger=false as this will speed up processing. T is the number of sample
+% used (that had valid data without NaNs).
+%
+% If granger==true (the default in case it is omitted) then the model will
+% also use the Granger statistical formalism and model will also include:
+%
+% model = A_pval, B_pval, A_Deviance, B_Deviance, A_Rvalue, B_Rvalue, T
 % 
 % A_pval,B_pval are  P-values for each channel (for all delays together)
 % using the Deviance formalism.
 %
-% A_Deviance, B_Deviance ,T are Deviance and number of sample used in the
-% estimation of p-values, and Deviance/T can serve as a measure of effect
-% size, and can be used to compute generalized R-square: R2 = 1 -
-% exp(-Devinace/T). These are returned as A_Rvalue, B_Rvalue. 
-% 
-% s2 is the mean squared error. 
+% A_Deviance, B_Deviance are Deviance. A_Rvalue, B_Rvalue are effect size
+% measured as generalized R values.
 %
 % varx(Y,na,X,base,lambda) If base is not a scalar, it is assumed that it
 % represent basis functions for filters B of size [filter length, number of
-% basis functions]. B will have size [size(base,2),ydim,xdim], i.e. as many
-% parameers for each path as basis functions. The actual filters can be
-% obtained as tensorprod(base,B,2,1);
+% basis functions]. 
 %
 % varx(Y,na,X,nb,lambda) If Y is a cell array, then the model is fit on all
 % data records in X and Y. All elements in the cell arrays X and Y have to
 % have the same xdim and ydim, but may have different numer of rows (time
 % samples).
 %
-% varx(Y,na) Only fitst the AR portion. To provide lambda, set set x=[] and
+% varx(Y,na) Only fits the AR portion. To provide lambda, set set x=[] and
 % nb=0.
 % 
 % If the intention is to only fit a MA model, then the Granger formalism
@@ -78,6 +86,7 @@ function m = varx(Y,na,X,nb,lambda)
 %     04/11/2024 Changed output to model structure to work with varx_display, output was getting too complicated.    
 %     05/16/2024 Aimar, changed so the model now computes the A and B Rvalues inside the main varx script
 %     06/05/2025 Lucas, noted cases with negative Devinace for large paramater count. Limiting it to no less than 0
+%     07/26/2025 Lucas, added AIC for model selection. Allowing to skip p-value calculation for speed during model selection. 
 
 % If not simulating eXternal MA channel then xdim=0
 if nargin<3 | nb==0, X=[]; nb=0; end 
@@ -150,28 +159,39 @@ if ~isempty(m.base)
     m.B = tensorprod(m.base,m.B_coeff,2,1);
 end
 
-tic
-% Granger Causal test for all inputs (external and recurrent)
-xdim = size(x,2);
-for i=xdim:-1:1 % same as above but with reduced model removing i-th input
-    ii = 1:sum(lags); ii((1:lags(i))+sum(lags(1:i-1)))=[]; % use inputs excluding i-th
-    [~,s2r,Biasr] = fit_model(Rxx(ii,ii),Rxy(ii,:),ryy,gamma,{base{[1:i-1 i+1:xdim]}});
-    df = T-sum(params); % degrees of freedom of the full model
-    Deviance(:,i) = max(df*log(s2r./s2) - T*Biasr + T*Bias,0); % not the exact formula, but I calibrated and seems to work well for small T. For large parameter count this approximation may be negative, hence the max()
-    pval(:,i) = 1-chi2cdf(Deviance(:,i),params(i));
-end
-my_toc('time to compute Granger p-values',5)
-
-
-% store additional outputs in model structure
-m.A_pval = pval(:,1:ydim);
-m.B_pval = pval(:,ydim+1:end);
-m.A_Deviance = Deviance(:,1:ydim);
-m.B_Deviance = Deviance(:,ydim+1:end);
-m.A_Rvalue = sqrt(1-exp(-m.A_Deviance/T));
-m.B_Rvalue = sqrt(1-exp(-m.B_Deviance/T));
+% store basic fitting accuracy 
 m.T = T;
-m.s2 = s2/T;
+m.s2 = s2/T;                         % error on train data
+m.AIC = 2*sum(params) + T*log(s2/T); % error estimate for unseen data
+
+% by default, do the grangers statistical analysis
+if ~exist('granger','var'), granger = true; end
+
+if granger
+
+    tic
+    % Granger Causal test for all inputs (external and recurrent)
+    xdim = size(x,2);
+    for i=xdim:-1:1 % same as above but with reduced model removing i-th input
+        ii = 1:sum(lags); ii((1:lags(i))+sum(lags(1:i-1)))=[]; % use inputs excluding i-th
+        [~,s2r,Biasr] = fit_model(Rxx(ii,ii),Rxy(ii,:),ryy,gamma,{base{[1:i-1 i+1:xdim]}});
+        df = T-sum(params); % degrees of freedom of the full model
+        Deviance(:,i) = max(df*log(s2r./s2) - T*Biasr + T*Bias,0); % not the exact formula, but I calibrated and seems to work well for small T. For large parameter count this approximation may be negative, hence the max()
+        pval(:,i) = 1-chi2cdf(Deviance(:,i),params(i));
+    end
+    my_toc('time to compute Granger p-values',5)
+
+
+    % store additional outputs in model structure
+    m.A_pval = pval(:,1:ydim);
+    m.B_pval = pval(:,ydim+1:end);
+    m.A_Deviance = Deviance(:,1:ydim);
+    m.B_Deviance = Deviance(:,ydim+1:end);
+    m.A_Rvalue = sqrt(1-exp(-m.A_Deviance/T));
+    m.B_Rvalue = sqrt(1-exp(-m.B_Deviance/T));
+
+end
+
 
 function [h,s2,Bias] = fit_model(Rxx,Rxy,ryy,gamma,base)
 

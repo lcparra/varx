@@ -464,6 +464,44 @@ model = varx(y,na,x,nb,lambda);
 varx_display(model,plottype='graph',xname={'x1'},yname={'y1','y2'});
 
 
+%% Use AIC to select the correct na and nb on for a known model
+clear all
+
+% define VARX model. Where there are all zeros, that path does not
+% contribute
+A(:,:,1) = [[0.3 -0.5 0.1 0.1]',[0 0 0  0  ]', [0.5 0 0.1 -0.1]']; 
+A(:,:,2) = [[-.5 0.4  0 -0.05]',[0.5 -.7 0 0.1]', [0 0 0 0]'];
+A(:,:,3) = [[0  0   0 0]',[ 0 0 0 0]', [0.5 0 0 0]'];
+B = [[1 1 0.2 0.3]',[1 -1 0.2 -0.3]',[-1 1 -0.2 0.3]']; 
+[nb_true,ydim,xdim] = size(B);
+[na_true,ydim,ydim] = size(A);
+
+% simulate 
+lambda = 0.0;
+T = 1000;
+x = randn(T,xdim);
+[y,e] = varx_simulate(B,A,x,1); 
+
+% estimate VARX model
+granger=false;
+for na=1:5
+    for nb=1:50
+        model = varx(y,na,x,nb,lambda,granger);
+        AIC(na,nb) = sum(model.AIC);
+    end
+end
+plot(AIC(2:end,:)')
+
+% optimal na and np acording to AIC
+ [~,indx]=min(AIC(:)); 
+ na_opt=rem(indx,size(AIC,1))
+ nb_opt=ceil(indx/size(AIC,1))
+
+ disp(['True na, nb        = ' num2str([na_true,nb_true])])
+ disp(['Estimated with AIC = ' num2str([na_opt ,nb_opt ])])
+
+
+
 % ----------------- result display function --------------------------
 function show_prediction(x,y,yest)
 
