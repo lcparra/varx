@@ -27,8 +27,9 @@ function m = varx(Y,na,X,nb,lambda,granger)
 % Criterion, i.e. an estimate of the generalization error. This can be used
 % to select optimal parameters na and nb with minimal generalization error.
 % AIC is computed for each channel in y. To have a single estimate for
-% selecting a best na and nb, one can use sum(AIC). If the goal is to first
-% select parameters, and p-values are not needed, then it is best to set
+% selecting a best na and nb, use sum(AIC), which is exact assuming
+% independent error in each channel. If the goal is to first select
+% parameters, and p-values are not needed, then it is best to set
 % granger=false as this will speed up processing. T is the number of sample
 % used (that had valid data without NaNs).
 %
@@ -161,8 +162,8 @@ end
 
 % store basic fitting accuracy 
 m.T = T;
-m.s2 = s2/T;                         % error on train data
-m.AIC = 2*sum(params) + T*log(s2/T); % error estimate for unseen data
+m.s2 = s2/T;                               % error on train data
+m.AIC = 2*(ydim*na+xdim*nb) + T*log(s2/T); % error estimate for unseen data
 
 % by default, do the grangers statistical analysis
 if ~exist('granger','var'), granger = true; end
