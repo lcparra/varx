@@ -163,7 +163,7 @@ end
 % store basic fitting accuracy 
 m.T = T;
 m.s2 = s2/T;                               % error on train data
-m.AIC = 2*(ydim*na+xdim*nb) + T*log(s2/T); % error estimate for unseen data
+m.AIC = 2*sum(params) + T*log(s2/T); % error estimate for unseen data
 
 % by default, do the grangers statistical analysis
 if ~exist('granger','var'), granger = true; end
