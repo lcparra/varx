@@ -1,6 +1,6 @@
-function m = varx(Y,na,X,nb,lambda,granger)
+function m = varx(Y,na,X,nb,lambda,AICmaxlag)
 
-% model = varx(Y,na,X,nb,lambda,ganger) fits an vectorial ARX model to the MIMO
+% model = varx(Y,na,X,nb,lambda,AICmaxlag) fits an vectorial ARX model to the MIMO
 % system output Y with input X by minimizing the equation error e(t), i.e.
 % equation error model:
 %
@@ -29,12 +29,15 @@ function m = varx(Y,na,X,nb,lambda,granger)
 % AIC is computed for each channel in y. To have a single estimate for
 % selecting a best na and nb, use sum(AIC), which is exact assuming
 % independent error in each channel. If the goal is to first select
-% parameters, and p-values are not needed, then it is best to set
-% granger=false as this will speed up processing. T is the number of sample
-% used (that had valid data without NaNs).
+% parameters, and p-values are not needed, then it is best to specify
+% AICmaxlag. This is the maximum number of lags that will potentially be
+% tested with AIC. T is the number of sample used (that had valid data
+% without NaNs). If AICmaxlag should be kept constant over different calls
+% of varx, to ensu that varx fitting and AIC computation will use the exact
+% same samples.
 %
-% If granger==true (the default in case it is omitted) then the model will
-% also use the Granger statistical formalism and model will also include:
+% If AICmaxlag is not specified, then the model will use the Granger
+% statistical formalism to also compute:
 %
 % model = A_pval, B_pval, A_Deviance, B_Deviance, A_Rvalue, B_Rvalue, T
 % 
@@ -88,6 +91,7 @@ function m = varx(Y,na,X,nb,lambda,granger)
 %     05/16/2024 Aimar, changed so the model now computes the A and B Rvalues inside the main varx script
 %     06/05/2025 Lucas, noted cases with negative Devinace for large paramater count. Limiting it to no less than 0
 %     07/26/2025 Lucas, added AIC for model selection. Allowing to skip p-value calculation for speed during model selection. 
+%     03/08/2025 Lucas, added option to specify maxlag, usefull for AIC parameter selection
 
 % If not simulating eXternal MA channel then xdim=0
 if nargin<3 | nb==0, X=[]; nb=0; end 
@@ -131,7 +135,11 @@ for i=1:length(Y)
     if nb, x = [x X{i}(2:end,:)]; end
 
     % Compute auto and cross correlations
-    [Rxx_,Rxy_,ryy_,T_] = myxcorr(x,y,lags); 
+    if exist('AICmaxlag','var')
+        [Rxx_,Rxy_,ryy_,T_] = myxcorr(x,y,lags,AICmaxlag);
+    else
+        [Rxx_,Rxy_,ryy_,T_] = myxcorr(x,y,lags); 
+    end
 
     % accumulate over all data records
     Rxx = Rxx + Rxx_; Rxy = Rxy + Rxy_; ryy = ryy + ryy_; T = T + T_;
@@ -162,13 +170,11 @@ end
 
 % store basic fitting accuracy 
 m.T = T;
-m.s2 = s2/T;                               % error on train data
-m.AIC = 2*sum(params) + T*log(s2/T); % error estimate for unseen data
+m.s2 = s2/T;                         % error on train data
+m.AIC = 2*sum(params) + T*log(s2/T); % error estimate for unseen data for model selection
 
-% by default, do the grangers statistical analysis
-if ~exist('granger','var'), granger = true; end
-
-if granger
+% Do the Granger analysis only if we are not doing model selection with AIC
+if ~exist('AICmaxlag','var')
 
     tic
     % Granger Causal test for all inputs (external and recurrent)

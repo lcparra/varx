@@ -486,16 +486,15 @@ x = randn(T,xdim);
 [y,e] = varx_simulate(B,A,x,1); 
 
 % estimate VARX model
-granger=true; % use false to speed up when p-values are not needed. 
+AICmaxlag = 10; % specify the largest na,nb we will test. Setting this also will omitt slower pvalue calculation 
 for na=1:5
-    for nb=1:20
-        model = varx(y,na,x,nb,lambda,granger);
+    for nb=1:AICmaxlag
+        model = varx(y,na,x,nb,lambda,AICmaxlag);
         AIC(na,nb) = sum(model.AIC);
-        Nconnect(na,nb) = sum(model.A_pval(:)<0.01)+sum(model.B_pval(:)<0.01);
     end
 end
-subplot(1,2,1); plot(AIC(2:end,:)')
-subplot(1,2,2); plot(Nconnect(2:end,:)')
+plot(AIC(2:end,:)')
+
 
  disp(['True na, nb         = ' num2str([na_true,nb_true])])
  
@@ -505,13 +504,6 @@ subplot(1,2,2); plot(Nconnect(2:end,:)')
  nb_opt=ceil(indx/size(AIC,1));
 
  disp(['Estimated with AIC  = ' num2str([na_opt ,nb_opt ])])
-
- % optimal na and np acording to Number of connections
- [~,indx]=min(Nconnect(:)); 
- na_opt=rem(indx,size(Nconnect,1));
- nb_opt=ceil(indx/size(Nconnect,1));
- disp(['Estimated with #Con = ' num2str([na_opt ,nb_opt ])])
-
 
 
 

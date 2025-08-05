@@ -1,5 +1,5 @@
-function [Rxx,Rxy,ryy,T] = myxcorr(x,y,lags)
-% [Rxx,Rxy,ryy,T] = myxcorr(x,y,lags) 
+function [Rxx,Rxy,ryy,T] = myxcorr(x,y,lags,maxlag)
+% [Rxx,Rxy,ryy,T] = myxcorr(x,y,lags,maxlag) 
 % 
 % Computes auto- and cross-correlation matrices Rxx, Rxy and ryy defined as
 % (after the mean is subtracted from x and y):
@@ -28,11 +28,13 @@ function [Rxx,Rxy,ryy,T] = myxcorr(x,y,lags)
 %
 % Correlations are computed using Toeplitz marices. x or y may contain NaN
 % which are removed from the sum over n which have NaN in any row of y, or
-% do not have a max(lags) history in the rows of x. T is returned to report
-% how many samples were used. The max(lags) samples at the start are also
+% do not have a maxlag history in the rows of x. T is returned to report
+% how many samples were used. The maxlags samples at the start are also
 % removed (this is known as the covariance method, see Ljung, System
 % Identification, Ch. 10.1). Mean subtraction is done with the mean of
-% valid samples only.
+% valid samples only. By default, maxlag=max(lags), but can be specified
+% optionally if one wishes to keep T constant, despite different choises of
+% lags.
 %
 % This functon can be used for MIMO FIR identification as follows: 
 % 
@@ -49,14 +51,20 @@ function [Rxx,Rxy,ryy,T] = myxcorr(x,y,lags)
 %     08/30/2023, allow for scalar lag argument
 %     12/10/2023, compute sum of squares of y, and handle NaN with Toeplitz
 %     12/11/2023, subtract the mean of x,y prior to computing anything. 
-%     12/12/2023, removed fft implementation, only using Toeplitz, omit samples at start  
+%     12/12/2023, removed fft implementation, only using Toeplitz, omit samples at start
+%     03/08/2025, added option to specify maxlag, usefull for AIC parameter selection
   
 
 if ~exist('lags','var') || isempty(lags), lags=size(x,1)-1; 
 elseif length(lags)==1, lags=lags*ones(size(x,2),1); end
 
-% will compute correlations up to the largest possible lag
-Q=max(lags);
+% Defines samples to be removed if they do not have Q valid history
+if exist('maxlag','var') && ~isempty(maxlag)
+    Q = max([maxlag; lags(:)]);
+    if Q>maxlag, warning(['Picked maxlag=' num2str(Q) ', while user requested maxlag=' num2str(maxlag)]); end
+else
+    Q = max(lags);
+end
 
 % valid samples means that there are no NaN in all rows of Y and Q history of all X rows
 z = nan(Q-1,1); []; % removed starting values (with is what varm() does in matlab. 
