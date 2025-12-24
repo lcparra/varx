@@ -1,6 +1,8 @@
 # VARX Granger Analysis
 
-This code accompanies the methods described in: 
+VARX model estimation and statistical analysis based on Granger formalism. 
+
+The methods are described in: 
 
 Parra, L. C., Silvan, A., Nentwich, M., Madsen, J., Parra, V. E., & Babadi, B. (2025). VARX Granger analysis: Models for neuroscience, physiology, sociology and econometrics. PLOS ONE, 20(1), e0313875. https://doi.org/10.1371/journal.pone.0313875
 
