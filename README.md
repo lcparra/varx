@@ -29,7 +29,7 @@ Maximilian Nentwich, Marcin Leszczynski, Charles E Schroeder, Stephan Bickel, Lu
 - Appendix 1 run examples/simulate_gain_adaptation.m
 - Figure 3b to compute H use varx_trf.m 
 
-Addions of and explained in
+Addions of to the code are explained in:
 
 Jens Madsen, Aimar Silvan, Behtash Babadi, Lucas C Parra "Brain-body dynamics is asymmetric and stable across cognitive states", bioRxiv, December 2025 , https://www.biorxiv.org/content/10.64898/2025.12.22.696055v1
 
