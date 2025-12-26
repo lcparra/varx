@@ -29,12 +29,13 @@ function m = varx(Y,na,X,nb,lambda,AICmaxlag)
 % AIC is computed for each channel in y. To have a single estimate for
 % selecting a best na and nb, use sum(AIC), which is exact assuming
 % independent error in each channel. If the goal is to first select
-% parameters, and p-values are not needed, then it is best to specify
+% parameters, and p-values are not needed, then one should specify
 % AICmaxlag. This is the maximum number of lags that will potentially be
-% tested with AIC. T is the number of sample used (that had valid data
-% without NaNs). If AICmaxlag should be kept constant over different calls
-% of varx, to ensu that varx fitting and AIC computation will use the exact
-% same samples.
+% tested with AIC. AICmaxlag should be kept constant over different calls
+% of varx, to ensure that varx fitting and AIC computation will use the exact
+% same samples across different calls (else AIC values can not be compared). 
+% 
+% T is the number of sample used (that had valid data without NaNs). 
 %
 % If AICmaxlag is not specified, then the model will use the Granger
 % statistical formalism to also compute:
@@ -45,7 +46,7 @@ function m = varx(Y,na,X,nb,lambda,AICmaxlag)
 % using the Deviance formalism.
 %
 % A_Deviance, B_Deviance are Deviance. A_Rvalue, B_Rvalue are effect size
-% measured as generalized R values.
+% measured as generalized R-square (here the R values is returned).
 %
 % varx(Y,na,X,base,lambda) If base is not a scalar, it is assumed that it
 % represent basis functions for filters B of size [filter length, number of
